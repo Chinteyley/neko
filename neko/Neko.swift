@@ -3,7 +3,8 @@ import SwiftUI
 enum NekoState {
     case idle
     case alert
-    case thinking
+    case scratching1
+    case scratching2
     case grooming1
     case grooming2
     case yawning
@@ -52,7 +53,8 @@ struct Neko: View {
         switch state {
         case .idle: sprite(0, 4)
         case .alert: sprite(0, 0)
-        case .thinking: sprite(0, 3)
+        case .scratching1: sprite(0, 2)
+        case .scratching2: sprite(0, 3)
         case .grooming1: sprite(1, 3)
         case .grooming2: sprite(2, 3)
         case .yawning: sprite(1, 4)
@@ -80,6 +82,6 @@ struct Neko: View {
 
 struct Neko_Previews: PreviewProvider {
     static var previews: some View {
-        Neko(state: .movingSouth2, size: 32)
+        Neko(state: .scratching1, size: 32)
     }
 }

@@ -13,56 +13,89 @@ enum Direction {
 }
 
 final class Store: ObservableObject {
-    private var direction: Direction
+    private var direction: Direction = .none
+    private var previousDirection: Direction = .none
     private var ticksSinceLastMove = 0
+    private var isScratching = false
+    private var scratchTicks = 0
 
-    @Published var nekoLoc: NSPoint = NSPoint(x: 0, y: 0)
-    @Published var mouseLoc: NSPoint = NSPoint(x: 0, y: 0)
+    @Published var nekoLoc: NSPoint
+    @Published var mouseLoc: NSPoint
     @Published var tick: Int = 0
     @Published var anim: [NekoState] = [.idle]
 
     private var step: CGFloat {
         Settings.shared.currentSize.rawValue
     }
+    
+    private var idleAnimationsEnabled: Bool {
+        Settings.shared.idleAnimationsEnabled
+    }
 
     init(withMouseLoc mouseLoc: NSPoint, andNekoLoc nekoLoc: NSPoint) {
         self.mouseLoc = mouseLoc
         self.nekoLoc = nekoLoc
-        self.direction = .none
     }
 
     func nextTick(_ newMouseLoc: NSPoint) -> NSPoint {
         tick += 1
 
         let newDirection = nextDirection(newMouseLoc, nekoLoc)
+        
+        if isScratching {
+            scratchTicks += 1
+            anim = [.scratching1, .scratching2]
+            if scratchTicks > 8 {
+                isScratching = false
+                scratchTicks = 0
+            }
+            mouseLoc = newMouseLoc
+            return nekoLoc
+        }
+        
         if direction != newDirection {
             tick = 0
-            if direction == .none {
+            
+            if previousDirection != .none && newDirection == .none {
+                isScratching = true
+                scratchTicks = 0
+                anim = [.scratching1, .scratching2]
+            } else if direction == .none && newDirection != .none {
                 anim = [.alert]
             } else {
                 anim = [.idle]
             }
+            
+            previousDirection = direction
             direction = newDirection
             ticksSinceLastMove = 0
+            mouseLoc = newMouseLoc
             return nekoLoc
         }
 
-        if mouseLoc == newMouseLoc {
+        let mouseMovedSignificantly = abs(mouseLoc.x - newMouseLoc.x) > 1 || abs(mouseLoc.y - newMouseLoc.y) > 1
+        if !mouseMovedSignificantly {
             ticksSinceLastMove += 1
+        } else {
+            ticksSinceLastMove = 0
         }
 
         switch direction {
         case .none:
-            anim = [.idle]
-
-            if ticksSinceLastMove > 33 {
-                anim = [.sleeping1, .sleeping1, .sleeping1, .sleeping1, .sleeping2, .sleeping2, .sleeping2, .sleeping2]
-            } else if ticksSinceLastMove > 31 {
-                anim = [.yawning, .yawning]
-            } else if ticksSinceLastMove > 16 {
+            if idleAnimationsEnabled {
+                if ticksSinceLastMove > 50 {
+                    anim = [.sleeping1, .sleeping1, .sleeping1, .sleeping1, .sleeping2, .sleeping2, .sleeping2, .sleeping2]
+                } else if ticksSinceLastMove > 45 {
+                    anim = [.yawning, .yawning]
+                } else if ticksSinceLastMove > 25 {
+                    anim = [.idle]
+                } else if ticksSinceLastMove > 12 {
+                    anim = [.grooming1, .grooming2]
+                } else {
+                    anim = [.idle]
+                }
+            } else {
                 anim = [.idle]
-            } else if ticksSinceLastMove > 8 {
-                anim = [.grooming1, .grooming2]
             }
         case .northWest:
             anim = [.movingNorthWest1, .movingNorthWest2]
@@ -95,7 +128,7 @@ final class Store: ObservableObject {
     }
 
     private func move(_ xSteps: CGFloat, _ ySteps: CGFloat) -> NSPoint {
-        return NSPoint(x: nekoLoc.x + step * xSteps, y: nekoLoc.y + step * ySteps)
+        NSPoint(x: nekoLoc.x + step * xSteps, y: nekoLoc.y + step * ySteps)
     }
 
     private func nextDirection(_ mouseLoc: NSPoint, _ nekoLoc: NSPoint) -> Direction {
@@ -128,6 +161,6 @@ final class Store: ObservableObject {
     }
 
     private func delta(_ p1: NSPoint, _ p2: NSPoint) -> NSPoint {
-        return NSPoint(x: (p1.x - p2.x) / step, y: (p1.y - p2.y) / step)
+        NSPoint(x: (p1.x - p2.x) / step, y: (p1.y - p2.y) / step)
     }
 }

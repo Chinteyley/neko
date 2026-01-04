@@ -7,6 +7,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var window: NSWindow!
     private var store: Store!
     private var statusBarController: StatusBarController!
+    private var animationTimer: Timer?
     private var cancellables = Set<AnyCancellable>()
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
@@ -33,12 +34,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.contentView = NSHostingView(rootView: ContentView(store: store))
         window.makeKeyAndOrderFront(nil)
         
-        Timer.scheduledTimer(withTimeInterval: 0.16, repeats: true) { [weak self] _ in
-            guard let self else { return }
-            window.setFrameOrigin(store.nextTick(NSEvent.mouseLocation))
-        }
+        startAnimationTimer()
         
         statusBarController = StatusBarController()
+        statusBarController.onSpeedChange = { [weak self] in
+            self?.restartAnimationTimer()
+        }
         
         Settings.shared.$currentSize
             .sink { [weak self] newSize in
@@ -47,5 +48,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 window.setContentSize(NSSize(width: sizeValue, height: sizeValue))
             }
             .store(in: &cancellables)
+        
+        Settings.shared.$currentSpeed
+            .sink { [weak self] _ in
+                self?.restartAnimationTimer()
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func startAnimationTimer() {
+        let interval = Settings.shared.currentSpeed.rawValue
+        animationTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            window.setFrameOrigin(store.nextTick(NSEvent.mouseLocation))
+        }
+    }
+    
+    private func restartAnimationTimer() {
+        animationTimer?.invalidate()
+        startAnimationTimer()
     }
 }
