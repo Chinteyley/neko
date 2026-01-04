@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    branches: [main, master]
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build
+        run: |
+          xcodebuild -project neko.xcodeproj \
+            -scheme neko \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+      
+      - name: Create App Bundle
+        run: |
+          cd build/Build/Products/Release
+          zip -r neko.zip neko.app
+          mv neko.zip $GITHUB_WORKSPACE/
+      
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: neko-app
+          path: neko.zip
+      
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: neko.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
