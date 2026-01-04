@@ -11,10 +11,11 @@
 		43F8AE83259F5CF500092212 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43F8AE82259F5CF500092212 /* ContentView.swift */; };
 		43F8AE85259F5CF600092212 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 43F8AE84259F5CF600092212 /* Assets.xcassets */; };
 		43F8AE88259F5CF600092212 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 43F8AE87259F5CF600092212 /* Preview Assets.xcassets */; };
-		43F8AE8B259F5CF600092212 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 43F8AE89259F5CF600092212 /* Main.storyboard */; };
 		43F8AE98259F5EC200092212 /* Neko.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43F8AE97259F5EC200092212 /* Neko.swift */; };
 		43F8AE9D259F6F0000092212 /* NekoAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43F8AE9C259F6F0000092212 /* NekoAnimation.swift */; };
 		43F8AEA3259F843200092212 /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43F8AEA2259F843200092212 /* Store.swift */; };
+		43F8AEA4259F843300092212 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43F8AEA5259F843300092212 /* Settings.swift */; };
+		43F8AEA6259F843400092212 /* StatusBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43F8AEA7259F843400092212 /* StatusBarController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -23,12 +24,13 @@
 		43F8AE82259F5CF500092212 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		43F8AE84259F5CF600092212 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		43F8AE87259F5CF600092212 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		43F8AE8A259F5CF600092212 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		43F8AE8C259F5CF600092212 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		43F8AE8D259F5CF600092212 /* neko.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = neko.entitlements; sourceTree = "<group>"; };
 		43F8AE97259F5EC200092212 /* Neko.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Neko.swift; sourceTree = "<group>"; };
 		43F8AE9C259F6F0000092212 /* NekoAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NekoAnimation.swift; sourceTree = "<group>"; };
 		43F8AEA2259F843200092212 /* Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Store.swift; sourceTree = "<group>"; };
+		43F8AEA5259F843300092212 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
+		43F8AEA7259F843400092212 /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -65,11 +67,12 @@
 				43F8AE84259F5CF600092212 /* Assets.xcassets */,
 				43F8AE82259F5CF500092212 /* ContentView.swift */,
 				43F8AE8C259F5CF600092212 /* Info.plist */,
-				43F8AE89259F5CF600092212 /* Main.storyboard */,
 				43F8AE8D259F5CF600092212 /* neko.entitlements */,
 				43F8AE97259F5EC200092212 /* Neko.swift */,
 				43F8AE9C259F6F0000092212 /* NekoAnimation.swift */,
 				43F8AE86259F5CF600092212 /* Preview Content */,
+				43F8AEA5259F843300092212 /* Settings.swift */,
+				43F8AEA7259F843400092212 /* StatusBarController.swift */,
 				43F8AEA2259F843200092212 /* Store.swift */,
 			);
 			path = neko;
@@ -140,7 +143,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				43F8AE8B259F5CF600092212 /* Main.storyboard in Resources */,
 				43F8AE88259F5CF600092212 /* Preview Assets.xcassets in Resources */,
 				43F8AE85259F5CF600092212 /* Assets.xcassets in Resources */,
 			);
@@ -158,21 +160,12 @@
 				43F8AE98259F5EC200092212 /* Neko.swift in Sources */,
 				43F8AE81259F5CF500092212 /* AppDelegate.swift in Sources */,
 				43F8AE9D259F6F0000092212 /* NekoAnimation.swift in Sources */,
+				43F8AEA4259F843300092212 /* Settings.swift in Sources */,
+				43F8AEA6259F843400092212 /* StatusBarController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXVariantGroup section */
-		43F8AE89259F5CF600092212 /* Main.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				43F8AE8A259F5CF600092212 /* Base */,
-			);
-			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
-/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		43F8AE8E259F5CF600092212 /* Debug */ = {

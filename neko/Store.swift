@@ -21,10 +21,14 @@ final class Store: ObservableObject {
     @Published var tick: Int = 0
     @Published var anim: [NekoState] = [.idle]
 
+    private var step: CGFloat {
+        Settings.shared.currentSize.rawValue
+    }
+
     init(withMouseLoc mouseLoc: NSPoint, andNekoLoc nekoLoc: NSPoint) {
         self.mouseLoc = mouseLoc
         self.nekoLoc = nekoLoc
-        self.direction = nextDirection(mouseLoc, nekoLoc)
+        self.direction = .none
     }
 
     func nextTick(_ newMouseLoc: NSPoint) -> NSPoint {
@@ -91,41 +95,39 @@ final class Store: ObservableObject {
     }
 
     private func move(_ xSteps: CGFloat, _ ySteps: CGFloat) -> NSPoint {
-        return NSPoint(x: nekoLoc.x + CGFloat(step) * xSteps, y: nekoLoc.y + CGFloat(step) * ySteps)
+        return NSPoint(x: nekoLoc.x + step * xSteps, y: nekoLoc.y + step * ySteps)
     }
-}
 
-private let step: CGFloat = 16
-
-private func nextDirection(_ mouseLoc: NSPoint, _ nekoLoc: NSPoint) -> Direction {
-    let d = delta(nekoLoc, mouseLoc)
-    if d.x >= 1 {
-        if d.y > -1 && d.y < 1 {
-            return .west
-        } else if d.y >= 1 {
-            return .southWest
+    private func nextDirection(_ mouseLoc: NSPoint, _ nekoLoc: NSPoint) -> Direction {
+        let d = delta(nekoLoc, mouseLoc)
+        if d.x >= 1 {
+            if d.y > -1 && d.y < 1 {
+                return .west
+            } else if d.y >= 1 {
+                return .southWest
+            } else {
+                return .northWest
+            }
+        } else if d.x <= -1 {
+            if d.y > -1 && d.y < 1 {
+                return .east
+            } else if d.y >= 1 {
+                return .southEast
+            } else {
+                return .northEast
+            }
         } else {
-            return .northWest
-        }
-    } else if d.x <= -1 {
-        if d.y > -1 && d.y < 1 {
-            return .east
-        } else if d.y >= 1 {
-            return .southEast
-        } else {
-            return .northEast
-        }
-    } else {
-        if d.y > -1 && d.y < 1{
-            return .none
-        } else if d.y >= 1 {
-            return .south
-        } else {
-            return .north
+            if d.y > -1 && d.y < 1 {
+                return .none
+            } else if d.y >= 1 {
+                return .south
+            } else {
+                return .north
+            }
         }
     }
-}
 
-private func delta(_ p1: NSPoint, _ p2: NSPoint) -> NSPoint {
-    return NSPoint(x: (p1.x - p2.x) / step, y: (p1.y - p2.y) / step)
+    private func delta(_ p1: NSPoint, _ p2: NSPoint) -> NSPoint {
+        return NSPoint(x: (p1.x - p2.x) / step, y: (p1.y - p2.y) / step)
+    }
 }
