@@ -16,6 +16,7 @@
 		43F8AEA3259F843200092212 /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43F8AEA2259F843200092212 /* Store.swift */; };
 		43F8AEA4259F843300092212 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43F8AEA5259F843300092212 /* Settings.swift */; };
 		43F8AEA6259F843400092212 /* StatusBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43F8AEA7259F843400092212 /* StatusBarController.swift */; };
+		43F8AEB0260000000000001 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43F8AEB1260000000000001 /* main.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,6 +32,7 @@
 		43F8AEA2259F843200092212 /* Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Store.swift; sourceTree = "<group>"; };
 		43F8AEA5259F843300092212 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
 		43F8AEA7259F843400092212 /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
+		43F8AEB1260000000000001 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -67,6 +69,7 @@
 				43F8AE84259F5CF600092212 /* Assets.xcassets */,
 				43F8AE82259F5CF500092212 /* ContentView.swift */,
 				43F8AE8C259F5CF600092212 /* Info.plist */,
+				43F8AEB1260000000000001 /* main.swift */,
 				43F8AE8D259F5CF600092212 /* neko.entitlements */,
 				43F8AE97259F5EC200092212 /* Neko.swift */,
 				43F8AE9C259F6F0000092212 /* NekoAnimation.swift */,
@@ -155,6 +158,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				43F8AEB0260000000000001 /* main.swift in Sources */,
 				43F8AEA3259F843200092212 /* Store.swift in Sources */,
 				43F8AE83259F5CF500092212 /* ContentView.swift in Sources */,
 				43F8AE98259F5EC200092212 /* Neko.swift in Sources */,

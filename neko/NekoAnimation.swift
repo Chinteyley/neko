@@ -1,26 +1,19 @@
 import SwiftUI
 
 struct NekoAnimation: View {
-    let animation: [NekoState]
-    let tick: Int
-    let size: CGFloat
+    @Binding var animation: [NekoState]
+    @Binding var tick: Int
 
     var body: some View {
-        Neko(state: currentState, size: size)
-    }
-    
-    private var currentState: NekoState {
-        guard !animation.isEmpty else { return .idle }
-        return animation[tick % animation.count]
+        Neko(state: $animation[tick % animation.count])
     }
 }
 
 struct NekoAnimation_Previews: PreviewProvider {
     static var previews: some View {
         NekoAnimation(
-            animation: [.sleeping1, .sleeping2],
-            tick: 0,
-            size: 32
+            animation: Binding.constant([.sleeping1, .sleeping2]),
+            tick: Binding.constant(0)
         )
     }
 }
