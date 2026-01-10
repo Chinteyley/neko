@@ -25,6 +25,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         window.backgroundColor = NSColor.init(calibratedRed: 1, green: 1, blue: 1, alpha: 0)
+        window.ignoresMouseEvents = true
         window.contentView = hostingView
         window.makeKeyAndOrderFront(nil)
     }
