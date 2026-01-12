@@ -1,21 +1,27 @@
 import Cocoa
 import SwiftUI
+import Combine
 
 class AppDelegate: NSObject, NSApplicationDelegate {
-    var window: NSWindow!
+    var window: NSPanel!
     var animationTimer: Timer?
     var statusBarController: StatusBarController?
     private var store: Store!
+    private var cancellables = Set<AnyCancellable>()
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
-        window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 16, height: 16),
-            styleMask: [.borderless],
+        NSApp.setActivationPolicy(.accessory)
+        
+        let initialSize = Settings.shared.currentSize.rawValue
+        window = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: initialSize, height: initialSize),
+            styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false)
-        window.level = NSWindow.Level.mainMenu
-        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        window.level = .floating
+        window.collectionBehavior = [.canJoinAllSpaces, .stationary]
         window.isReleasedWhenClosed = false
+        window.hidesOnDeactivate = false
         window.center()
 
         store = Store(withMouseLoc: NSEvent.mouseLocation, andNekoLoc: window.frame.origin)
@@ -27,7 +33,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.contentView = hostingView
 
         startAnimationTimer()
-        window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
 
         statusBarController = StatusBarController()
         statusBarController?.onSpeedChange = { [weak self] in
@@ -40,6 +46,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.pauseNeko()
             }
         }
+        
+        Settings.shared.$currentSize
+            .dropFirst()
+            .sink { [weak self] newSize in
+                self?.updateWindowSize(newSize)
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func updateWindowSize(_ size: NekoSize) {
+        let newSize = size.rawValue
+        window.setContentSize(NSSize(width: newSize, height: newSize))
     }
 
     private func startAnimationTimer() {
@@ -63,7 +81,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func resumeNeko() {
-        window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
         startAnimationTimer()
     }
 }

@@ -95,7 +95,7 @@ final class Store: ObservableObject {
     }
 }
 
-private let step: CGFloat = 16
+private var step: CGFloat { Settings.shared.currentSize.rawValue }
 
 private func nextDirection(_ mouseLoc: NSPoint, _ nekoLoc: NSPoint) -> Direction {
     let d = delta(nekoLoc, mouseLoc)

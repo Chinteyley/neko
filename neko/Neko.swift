@@ -29,12 +29,16 @@ enum NekoState {
 
 struct Neko: View {
     @Binding var state: NekoState
+    var size: NekoSize
+
+    private var scale: CGFloat { size.scale }
 
     var body: some View {
         Image("Neko")
             .interpolation(.none)
-            .offset(x: offset.x, y: offset.y)
-            .frame(width: 16, height: 16, alignment: .topLeading)
+            .scaleEffect(scale, anchor: .topLeading)
+            .offset(x: offset.x * scale, y: offset.y * scale)
+            .frame(width: size.rawValue, height: size.rawValue, alignment: .topLeading)
             .clipped()
     }
 
@@ -113,6 +117,6 @@ struct Neko: View {
 
 struct Neko_Previews: PreviewProvider {
     static var previews: some View {
-        Neko(state: Binding.constant(.movingSouth2))
+        Neko(state: Binding.constant(.movingSouth2), size: .small)
     }
 }

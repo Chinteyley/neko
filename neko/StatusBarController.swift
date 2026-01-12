@@ -9,8 +9,9 @@ final class StatusBarController {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         
         if let button = statusItem.button {
-            let baseIcon = NSApplication.shared.applicationIconImage
-            let icon = (baseIcon.copy() as? NSImage) ?? baseIcon
+            // Safely unwrap applicationIconImage and ensure we have a non-optional NSImage
+            let baseIcon = NSApplication.shared.applicationIconImage ?? NSImage(size: NSSize(width: 18, height: 18))
+            let icon = baseIcon.copy() as? NSImage ?? baseIcon
             let iconSize = NSSize(
                 width: NSStatusBar.system.thickness,
                 height: NSStatusBar.system.thickness
