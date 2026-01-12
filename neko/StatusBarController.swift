@@ -5,6 +5,7 @@ final class StatusBarController {
     private var statusItem: NSStatusItem
     private var cancellables = Set<AnyCancellable>()
     var onSpeedChange: (() -> Void)?
+    var onToggleEnabled: (() -> Void)?
     
     init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -24,6 +25,10 @@ final class StatusBarController {
             .store(in: &cancellables)
         
         Settings.shared.$idleAnimationsEnabled
+            .sink { [weak self] _ in self?.updateMenuCheckmarks() }
+            .store(in: &cancellables)
+
+        Settings.shared.$nekoEnabled
             .sink { [weak self] _ in self?.updateMenuCheckmarks() }
             .store(in: &cancellables)
     }
@@ -77,7 +82,15 @@ final class StatusBarController {
         menu.addItem(idleItem)
         
         menu.addItem(NSMenuItem.separator())
-        
+
+        let enableItem = NSMenuItem(
+            title: Settings.shared.nekoEnabled ? "Pause Neko" : "Resume Neko",
+            action: #selector(toggleEnabled(_:)),
+            keyEquivalent: "p"
+        )
+        enableItem.target = self
+        menu.addItem(enableItem)
+
         let quitItem = NSMenuItem(
             title: "Quit Neko",
             action: #selector(quitApp),
@@ -105,6 +118,10 @@ final class StatusBarController {
             if item.action == #selector(toggleIdleAnimations(_:)) {
                 item.state = Settings.shared.idleAnimationsEnabled ? .on : .off
             }
+
+            if item.action == #selector(toggleEnabled(_:)) {
+                item.title = Settings.shared.nekoEnabled ? "Pause Neko" : "Resume Neko"
+            }
         }
     }
     
@@ -125,7 +142,12 @@ final class StatusBarController {
     @objc private func toggleIdleAnimations(_ sender: NSMenuItem) {
         Settings.shared.idleAnimationsEnabled.toggle()
     }
-    
+
+    @objc private func toggleEnabled(_ sender: NSMenuItem) {
+        Settings.shared.nekoEnabled.toggle()
+        onToggleEnabled?()
+    }
+
     @objc private func quitApp() {
         NSApplication.shared.terminate(nil)
     }

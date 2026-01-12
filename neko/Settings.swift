@@ -45,6 +45,7 @@ final class Settings: ObservableObject {
     private let sizeKey = "nekoSize"
     private let speedKey = "nekoSpeed"
     private let idleAnimationsKey = "nekoIdleAnimations"
+    private let enabledKey = "nekoEnabled"
     
     @Published var currentSize: NekoSize {
         didSet { UserDefaults.standard.set(currentSize.rawValue, forKey: sizeKey) }
@@ -57,7 +58,11 @@ final class Settings: ObservableObject {
     @Published var idleAnimationsEnabled: Bool {
         didSet { UserDefaults.standard.set(idleAnimationsEnabled, forKey: idleAnimationsKey) }
     }
-    
+
+    @Published var nekoEnabled: Bool {
+        didSet { UserDefaults.standard.set(nekoEnabled, forKey: enabledKey) }
+    }
+
     private init() {
         let savedSize = UserDefaults.standard.double(forKey: sizeKey)
         if savedSize > 0, let size = NekoSize(rawValue: CGFloat(savedSize)) {
@@ -77,6 +82,12 @@ final class Settings: ObservableObject {
             idleAnimationsEnabled = UserDefaults.standard.bool(forKey: idleAnimationsKey)
         } else {
             idleAnimationsEnabled = true
+        }
+
+        if UserDefaults.standard.object(forKey: enabledKey) != nil {
+            nekoEnabled = UserDefaults.standard.bool(forKey: enabledKey)
+        } else {
+            nekoEnabled = true
         }
     }
 }
