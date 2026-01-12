@@ -1,9 +1,7 @@
 import Cocoa
-import Combine
 
 final class StatusBarController {
     private var statusItem: NSStatusItem
-    private var cancellables = Set<AnyCancellable>()
     var onSpeedChange: (() -> Void)?
     var onToggleEnabled: (() -> Void)?
     
@@ -11,26 +9,28 @@ final class StatusBarController {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         
         if let button = statusItem.button {
-            button.title = "🐱"
+            // Safely unwrap the optional application icon image
+            let appIcon = NSApplication.shared.applicationIconImage
+            let icon: NSImage
+            if let base = appIcon {
+                icon = (base.copy() as? NSImage) ?? base
+            } else {
+                // Fallback to a default status bar icon if app icon is unavailable
+                icon = NSImage(systemSymbolName: "pawprint", accessibilityDescription: "Neko") ?? NSImage(size: NSSize(width: NSStatusBar.system.thickness, height: NSStatusBar.system.thickness))
+            }
+
+            let iconSize = NSSize(
+                width: NSStatusBar.system.thickness,
+                height: NSStatusBar.system.thickness
+            )
+            icon.size = iconSize
+            icon.isTemplate = false
+            button.image = icon
+            button.imagePosition = .imageOnly
+            button.title = ""
         }
         
         setupMenu()
-        
-        Settings.shared.$currentSize
-            .sink { [weak self] _ in self?.updateMenuCheckmarks() }
-            .store(in: &cancellables)
-        
-        Settings.shared.$currentSpeed
-            .sink { [weak self] _ in self?.updateMenuCheckmarks() }
-            .store(in: &cancellables)
-        
-        Settings.shared.$idleAnimationsEnabled
-            .sink { [weak self] _ in self?.updateMenuCheckmarks() }
-            .store(in: &cancellables)
-
-        Settings.shared.$nekoEnabled
-            .sink { [weak self] _ in self?.updateMenuCheckmarks() }
-            .store(in: &cancellables)
     }
     
     private func setupMenu() {
@@ -102,49 +102,42 @@ final class StatusBarController {
         statusItem.menu = menu
     }
     
-    private func updateMenuCheckmarks() {
-        guard let menu = statusItem.menu else { return }
-        
-        for item in menu.items {
-            if let size = NekoSize(rawValue: CGFloat(item.tag)), item.tag > 0 {
-                item.state = Settings.shared.currentSize == size ? .on : .off
-            }
-            
-            if let speedValue = item.representedObject as? Double,
-               let speed = NekoSpeed(rawValue: speedValue) {
-                item.state = Settings.shared.currentSpeed == speed ? .on : .off
-            }
-            
-            if item.action == #selector(toggleIdleAnimations(_:)) {
-                item.state = Settings.shared.idleAnimationsEnabled ? .on : .off
-            }
-
-            if item.action == #selector(toggleEnabled(_:)) {
-                item.title = Settings.shared.nekoEnabled ? "Pause Neko" : "Resume Neko"
-            }
-        }
-    }
-    
     @objc private func sizeSelected(_ sender: NSMenuItem) {
-        if let size = NekoSize(rawValue: CGFloat(sender.tag)) {
-            Settings.shared.currentSize = size
+        guard let menu = statusItem.menu,
+              let size = NekoSize(rawValue: CGFloat(sender.tag)) else { return }
+        
+        for item in menu.items where item.tag > 0 {
+            item.state = item.tag == sender.tag ? .on : .off
         }
+        menu.update()
+        Settings.shared.currentSize = size
     }
     
     @objc private func speedSelected(_ sender: NSMenuItem) {
-        if let speedValue = sender.representedObject as? Double,
-           let speed = NekoSpeed(rawValue: speedValue) {
-            Settings.shared.currentSpeed = speed
-            onSpeedChange?()
+        guard let menu = statusItem.menu,
+              let speedValue = sender.representedObject as? Double,
+              let speed = NekoSpeed(rawValue: speedValue) else { return }
+        
+        for item in menu.items {
+            if item.representedObject is Double {
+                item.state = item === sender ? .on : .off
+            }
         }
+        menu.update()
+        Settings.shared.currentSpeed = speed
+        onSpeedChange?()
     }
     
     @objc private func toggleIdleAnimations(_ sender: NSMenuItem) {
+        sender.state = sender.state == .on ? .off : .on
+        statusItem.menu?.update()
         Settings.shared.idleAnimationsEnabled.toggle()
     }
 
     @objc private func toggleEnabled(_ sender: NSMenuItem) {
         Settings.shared.nekoEnabled.toggle()
+        sender.title = Settings.shared.nekoEnabled ? "Pause Neko" : "Resume Neko"
+        statusItem.menu?.update()
         onToggleEnabled?()
     }
 
