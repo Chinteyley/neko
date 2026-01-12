@@ -9,16 +9,8 @@ final class StatusBarController {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         
         if let button = statusItem.button {
-            // Safely unwrap the optional application icon image
-            let appIcon = NSApplication.shared.applicationIconImage
-            let icon: NSImage
-            if let base = appIcon {
-                icon = (base.copy() as? NSImage) ?? base
-            } else {
-                // Fallback to a default status bar icon if app icon is unavailable
-                icon = NSImage(systemSymbolName: "pawprint", accessibilityDescription: "Neko") ?? NSImage(size: NSSize(width: NSStatusBar.system.thickness, height: NSStatusBar.system.thickness))
-            }
-
+            let baseIcon = NSApplication.shared.applicationIconImage
+            let icon = (baseIcon.copy() as? NSImage) ?? baseIcon
             let iconSize = NSSize(
                 width: NSStatusBar.system.thickness,
                 height: NSStatusBar.system.thickness
