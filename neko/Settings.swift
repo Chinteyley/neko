@@ -2,24 +2,59 @@ import Foundation
 import Combine
 
 enum NekoSize: CGFloat, CaseIterable {
-    case tiny = 16
-    case small = 32
-    case medium = 48
-    case large = 64
-    case huge = 96
+    case small = 16
+    case medium = 24
+    case large = 32
     
     var displayName: String {
         switch self {
-        case .tiny: "Tiny"
         case .small: "Small"
         case .medium: "Medium"
         case .large: "Large"
-        case .huge: "Huge"
         }
     }
     
     var scale: CGFloat {
         rawValue / 16
+    }
+
+    static func fromSavedValue(_ value: Double) -> NekoSize {
+        let raw = CGFloat(value)
+        if let size = NekoSize(rawValue: raw) {
+            return size
+        }
+        return NekoSize.allCases.min(by: { abs($0.rawValue - raw) < abs($1.rawValue - raw) }) ?? .small
+    }
+
+    static func fromStoredValue(_ value: Any?) -> NekoSize? {
+        guard let value else { return nil }
+
+        if let number = value as? NSNumber {
+            return fromSavedValue(number.doubleValue)
+        }
+        if let number = value as? Double {
+            return fromSavedValue(number)
+        }
+        if let number = value as? CGFloat {
+            return fromSavedValue(Double(number))
+        }
+        if let string = value as? String {
+            let normalized = string.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            if let number = Double(normalized) {
+                return fromSavedValue(number)
+            }
+            switch normalized {
+            case "tiny", "small":
+                return .small
+            case "mid", "medium":
+                return .medium
+            case "big", "large", "huge":
+                return .large
+            default:
+                return nil
+            }
+        }
+        return nil
     }
 }
 
@@ -64,12 +99,9 @@ final class Settings: ObservableObject {
     }
 
     private init() {
-        let savedSize = UserDefaults.standard.double(forKey: sizeKey)
-        if savedSize > 0, let size = NekoSize(rawValue: CGFloat(savedSize)) {
-            currentSize = size
-        } else {
-            currentSize = .small
-        }
+        let savedSizeObject = UserDefaults.standard.object(forKey: sizeKey)
+        currentSize = NekoSize.fromStoredValue(savedSizeObject) ?? .medium
+        UserDefaults.standard.set(currentSize.rawValue, forKey: sizeKey)
         
         let savedSpeed = UserDefaults.standard.double(forKey: speedKey)
         if savedSpeed > 0, let speed = NekoSpeed(rawValue: savedSpeed) {
