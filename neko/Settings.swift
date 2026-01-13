@@ -62,14 +62,12 @@ enum NekoSpeed: Double, CaseIterable {
     case slow = 0.24
     case normal = 0.16
     case fast = 0.10
-    case hyper = 0.06
     
     var displayName: String {
         switch self {
         case .slow: "Slow"
         case .normal: "Normal"
         case .fast: "Fast"
-        case .hyper: "Hyper"
         }
     }
 }
@@ -79,7 +77,6 @@ final class Settings: ObservableObject {
     
     private let sizeKey = "nekoSize"
     private let speedKey = "nekoSpeed"
-    private let idleAnimationsKey = "nekoIdleAnimations"
     private let enabledKey = "nekoEnabled"
     
     @Published var currentSize: NekoSize {
@@ -90,36 +87,46 @@ final class Settings: ObservableObject {
         didSet { UserDefaults.standard.set(currentSpeed.rawValue, forKey: speedKey) }
     }
     
-    @Published var idleAnimationsEnabled: Bool {
-        didSet { UserDefaults.standard.set(idleAnimationsEnabled, forKey: idleAnimationsKey) }
-    }
+    var idleAnimationsEnabled: Bool { true }
 
     @Published var nekoEnabled: Bool {
         didSet { UserDefaults.standard.set(nekoEnabled, forKey: enabledKey) }
     }
 
     private init() {
+        // Determine initial size without triggering didSet
         let savedSizeObject = UserDefaults.standard.object(forKey: sizeKey)
-        currentSize = NekoSize.fromStoredValue(savedSizeObject) ?? .medium
-        UserDefaults.standard.set(currentSize.rawValue, forKey: sizeKey)
-        
+        let initialSize = NekoSize.fromStoredValue(savedSizeObject) ?? .medium
+
+        // Determine initial speed (map any unknown/legacy value to nearest case)
         let savedSpeed = UserDefaults.standard.double(forKey: speedKey)
-        if savedSpeed > 0, let speed = NekoSpeed(rawValue: savedSpeed) {
-            currentSpeed = speed
+        let initialSpeed: NekoSpeed
+        if savedSpeed > 0, let exact = NekoSpeed(rawValue: savedSpeed) {
+            initialSpeed = exact
+        } else if savedSpeed > 0 {
+            // Map to nearest available speed
+            let nearest = NekoSpeed.allCases.min(by: { abs($0.rawValue - savedSpeed) < abs($1.rawValue - savedSpeed) })
+            initialSpeed = nearest ?? .normal
         } else {
-            currentSpeed = .normal
-        }
-        
-        if UserDefaults.standard.object(forKey: idleAnimationsKey) != nil {
-            idleAnimationsEnabled = UserDefaults.standard.bool(forKey: idleAnimationsKey)
-        } else {
-            idleAnimationsEnabled = true
+            initialSpeed = .normal
         }
 
+        // Determine initial enabled flag
+        let initialNekoEnabled: Bool
         if UserDefaults.standard.object(forKey: enabledKey) != nil {
-            nekoEnabled = UserDefaults.standard.bool(forKey: enabledKey)
+            initialNekoEnabled = UserDefaults.standard.bool(forKey: enabledKey)
         } else {
-            nekoEnabled = true
+            initialNekoEnabled = true
         }
+
+        // Now assign to stored properties once; didSet observers won't run during init
+        self.currentSize = initialSize
+        self.currentSpeed = initialSpeed
+        self.nekoEnabled = initialNekoEnabled
+
+        // Persist defaults explicitly after properties are initialized to avoid 'self' before init issues
+        UserDefaults.standard.set(initialSize.rawValue, forKey: sizeKey)
+        UserDefaults.standard.set(initialSpeed.rawValue, forKey: speedKey)
+        UserDefaults.standard.set(initialNekoEnabled, forKey: enabledKey)
     }
 }
