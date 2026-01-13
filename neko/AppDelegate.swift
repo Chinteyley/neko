@@ -35,22 +35,31 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         startAnimationTimer()
         window.orderFrontRegardless()
         
+        if !Settings.shared.nekoEnabled {
+            pauseNeko()
+        }
+        
         statusBarController = StatusBarController()
         statusBarController?.onSpeedChange = { [weak self] in
+            guard Settings.shared.nekoEnabled else { return }
             self?.restartAnimationTimer()
-        }
-        statusBarController?.onToggleEnabled = { [weak self] in
-            if Settings.shared.nekoEnabled {
-                self?.resumeNeko()
-            } else {
-                self?.pauseNeko()
-            }
         }
         
         Settings.shared.$currentSize
             .dropFirst()
             .sink { [weak self] newSize in
                 self?.updateWindowSize(newSize)
+            }
+            .store(in: &cancellables)
+        
+        Settings.shared.$nekoEnabled
+            .dropFirst()
+            .sink { [weak self] enabled in
+                if enabled {
+                    self?.resumeNeko()
+                } else {
+                    self?.pauseNeko()
+                }
             }
             .store(in: &cancellables)
     }

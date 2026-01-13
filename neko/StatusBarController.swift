@@ -70,6 +70,7 @@ final class StatusBarController {
             keyEquivalent: "p"
         )
         enableItem.target = self
+        enableItem.keyEquivalentModifierMask = [.command, .option]
         menu.addItem(enableItem)
 
         let quitItem = NSMenuItem(
