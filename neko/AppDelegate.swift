@@ -34,7 +34,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         startAnimationTimer()
         window.orderFrontRegardless()
-
+        
         statusBarController = StatusBarController()
         statusBarController?.onSpeedChange = { [weak self] in
             self?.restartAnimationTimer()
@@ -85,3 +85,4 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         startAnimationTimer()
     }
 }
+

@@ -64,18 +64,6 @@ final class StatusBarController {
         }
         
         menu.addItem(NSMenuItem.separator())
-        
-        let idleItem = NSMenuItem(
-            title: "Idle Animations",
-            action: #selector(toggleIdleAnimations(_:)),
-            keyEquivalent: ""
-        )
-        idleItem.target = self
-        idleItem.state = Settings.shared.idleAnimationsEnabled ? .on : .off
-        menu.addItem(idleItem)
-        
-        menu.addItem(NSMenuItem.separator())
-
         let enableItem = NSMenuItem(
             title: Settings.shared.nekoEnabled ? "Pause Neko" : "Resume Neko",
             action: #selector(toggleEnabled(_:)),
@@ -120,12 +108,6 @@ final class StatusBarController {
         Settings.shared.currentSpeed = speed
         onSpeedChange?()
     }
-    
-    @objc private func toggleIdleAnimations(_ sender: NSMenuItem) {
-        sender.state = sender.state == .on ? .off : .on
-        statusItem.menu?.update()
-        Settings.shared.idleAnimationsEnabled.toggle()
-    }
 
     @objc private func toggleEnabled(_ sender: NSMenuItem) {
         Settings.shared.nekoEnabled.toggle()
@@ -138,3 +120,4 @@ final class StatusBarController {
         NSApplication.shared.terminate(nil)
     }
 }
+
