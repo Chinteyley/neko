@@ -10,6 +10,9 @@ A tiny menu bar kitten that follows your mouse on macOS.
 
 - Animated eight-direction pixel sprite that follows the cursor along a direct path.
 - Crisp, step-based movement with immediate direction changes between movement gaits.
+- Brief thinking animation when the kitten arrives.
+- Screen-aware recovery when displays change.
+- Three follow-distance presets and three built-in color themes.
 - Always-on-top window, including fullscreen apps.
 - Menu bar app only (no Dock icon).
 - Three size presets, scaled with crisp pixels.
@@ -33,6 +36,9 @@ open build/Debug/neko.app
 - Click the menu bar icon to open controls.
 - Size: Small (16 px), Medium (24 px), Large (32 px).
 - Speed: Slow, Normal, Fast.
+- Follow Distance: Close, Comfortable, Far.
+- Theme: Classic, Ginger, Blue-Gray.
+- Bring Neko Here: centers the kitten at the cursor and keeps it on screen.
 - Pause/Resume: `Cmd+Opt+P` (hides or shows the kitten).
 - Quit: `Cmd+Q`.
 - Settings persist between launches.

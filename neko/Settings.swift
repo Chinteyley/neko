@@ -72,12 +72,62 @@ enum NekoSpeed: Double, CaseIterable {
     }
 }
 
+enum NekoFollowDistance: String, CaseIterable {
+    case close
+    case comfortable
+    case far
+
+    var displayName: String {
+        switch self {
+        case .close: "Close"
+        case .comfortable: "Comfortable"
+        case .far: "Far"
+        }
+    }
+
+    var stopMultiplier: CGFloat {
+        switch self {
+        case .close: 1
+        case .comfortable: 3
+        case .far: 6
+        }
+    }
+
+    var resumeMultiplier: CGFloat {
+        stopMultiplier + 0.5
+    }
+
+    static func fromStoredValue(_ value: String?) -> NekoFollowDistance {
+        NekoFollowDistance(rawValue: value ?? "") ?? .close
+    }
+}
+
+enum NekoTheme: String, CaseIterable {
+    case classic
+    case ginger
+    case blueGray
+
+    var displayName: String {
+        switch self {
+        case .classic: "Classic"
+        case .ginger: "Ginger"
+        case .blueGray: "Blue/Gray"
+        }
+    }
+
+    static func fromStoredValue(_ value: String?) -> NekoTheme {
+        NekoTheme(rawValue: value ?? "") ?? .classic
+    }
+}
+
 final class Settings: ObservableObject {
     static let shared = Settings()
     
     private let sizeKey = "nekoSize"
     private let speedKey = "nekoSpeed"
     private let enabledKey = "nekoEnabled"
+    private let followDistanceKey = "nekoFollowDistance"
+    private let themeKey = "nekoTheme"
     
     @Published var currentSize: NekoSize {
         didSet { UserDefaults.standard.set(currentSize.rawValue, forKey: sizeKey) }
@@ -87,6 +137,14 @@ final class Settings: ObservableObject {
         didSet { UserDefaults.standard.set(currentSpeed.rawValue, forKey: speedKey) }
     }
     
+
+    @Published var currentFollowDistance: NekoFollowDistance {
+        didSet { UserDefaults.standard.set(currentFollowDistance.rawValue, forKey: followDistanceKey) }
+    }
+
+    @Published var currentTheme: NekoTheme {
+        didSet { UserDefaults.standard.set(currentTheme.rawValue, forKey: themeKey) }
+    }
     var idleAnimationsEnabled: Bool { true }
 
     @Published var nekoEnabled: Bool {
@@ -111,6 +169,13 @@ final class Settings: ObservableObject {
             initialSpeed = .normal
         }
 
+
+        let initialFollowDistance = NekoFollowDistance.fromStoredValue(
+            UserDefaults.standard.string(forKey: followDistanceKey)
+        )
+        let initialTheme = NekoTheme.fromStoredValue(
+            UserDefaults.standard.string(forKey: themeKey)
+        )
         // Determine initial enabled flag
         let initialNekoEnabled: Bool
         if UserDefaults.standard.object(forKey: enabledKey) != nil {
@@ -122,11 +187,15 @@ final class Settings: ObservableObject {
         // Now assign to stored properties once; didSet observers won't run during init
         self.currentSize = initialSize
         self.currentSpeed = initialSpeed
+        self.currentFollowDistance = initialFollowDistance
+        self.currentTheme = initialTheme
         self.nekoEnabled = initialNekoEnabled
 
         // Persist defaults explicitly after properties are initialized to avoid 'self' before init issues
         UserDefaults.standard.set(initialSize.rawValue, forKey: sizeKey)
         UserDefaults.standard.set(initialSpeed.rawValue, forKey: speedKey)
+        UserDefaults.standard.set(initialFollowDistance.rawValue, forKey: followDistanceKey)
+        UserDefaults.standard.set(initialTheme.rawValue, forKey: themeKey)
         UserDefaults.standard.set(initialNekoEnabled, forKey: enabledKey)
     }
 }

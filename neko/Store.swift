@@ -26,7 +26,11 @@ final class Store: ObservableObject {
     init(withMouseLoc mouseLoc: NSPoint, andNekoLoc nekoLoc: NSPoint) {
         self.mouseLoc = mouseLoc
         self.nekoLoc = nekoLoc
-        self.direction = nextDirection(mouseLoc, nekoLoc)
+        self.direction = nextDirection(
+            mouseLoc,
+            nekoLoc,
+            threshold: Settings.shared.currentFollowDistance.stopMultiplier
+        )
     }
 
     func relocate(to location: NSPoint, mouseLocation: NSPoint) {
@@ -42,7 +46,10 @@ final class Store: ObservableObject {
     func nextTick(_ newMouseLoc: NSPoint) -> NSPoint {
         tick += 1
 
-        let newDirection = nextDirection(newMouseLoc, nekoLoc)
+        let threshold = direction == .none
+            ? Settings.shared.currentFollowDistance.resumeMultiplier
+            : Settings.shared.currentFollowDistance.stopMultiplier
+        let newDirection = nextDirection(newMouseLoc, nekoLoc, threshold: threshold)
         if direction != newDirection {
             let wasIdle = direction == .none
             direction = newDirection
@@ -124,9 +131,9 @@ final class Store: ObservableObject {
         let xDistance = target.x - nekoLoc.x
         let yDistance = target.y - nekoLoc.y
         let distance = sqrt(xDistance * xDistance + yDistance * yDistance)
-        let travel = min(step, distance)
+        let travel = min(step, max(0, distance - stopRadius))
 
-        guard distance > 0 else { return nekoLoc }
+        guard travel > 0 else { return nekoLoc }
 
         return NSPoint(
             x: nekoLoc.x + xDistance / distance * travel,
@@ -137,14 +144,18 @@ final class Store: ObservableObject {
 
 private var step: CGFloat { Settings.shared.currentSize.rawValue }
 
-private func nextDirection(_ mouseLoc: NSPoint, _ nekoLoc: NSPoint) -> Direction {
+private var stopRadius: CGFloat {
+    Settings.shared.currentFollowDistance.stopMultiplier * step
+}
+
+private func nextDirection(_ mouseLoc: NSPoint, _ nekoLoc: NSPoint, threshold: CGFloat) -> Direction {
     let d = delta(nekoLoc, mouseLoc)
     let horizontal = abs(d.x)
     let vertical = abs(d.y)
     let distance = sqrt(d.x * d.x + d.y * d.y)
     let diagonalThreshold: CGFloat = 0.4142
 
-    if distance < 1 {
+    if distance <= threshold {
         return .none
     }
 

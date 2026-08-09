@@ -4,17 +4,21 @@ import XCTest
 final class StoreThinkingTests: XCTestCase {
     private var originalSize: NekoSize!
     private var originalSpeed: NekoSpeed!
+    private var originalFollowDistance: NekoFollowDistance!
 
     override func setUp() {
         super.setUp()
         originalSize = Settings.shared.currentSize
         originalSpeed = Settings.shared.currentSpeed
+        originalFollowDistance = Settings.shared.currentFollowDistance
         Settings.shared.currentSize = .small
+        Settings.shared.currentFollowDistance = .close
     }
 
     override func tearDown() {
         Settings.shared.currentSize = originalSize
         Settings.shared.currentSpeed = originalSpeed
+        Settings.shared.currentFollowDistance = originalFollowDistance
         super.tearDown()
     }
 
@@ -114,7 +118,7 @@ final class StoreThinkingTests: XCTestCase {
     }
 
     private var arrival: NSPoint {
-        NSPoint(x: Settings.shared.currentSize.rawValue * 2, y: 0)
+        NSPoint(x: Settings.shared.currentSize.rawValue * 3, y: 0)
     }
 
     private func arrivedStore(speed: NekoSpeed) -> Store {

@@ -65,6 +65,42 @@ final class StatusBarController {
         }
         
         menu.addItem(NSMenuItem.separator())
+
+        let followDistanceHeader = NSMenuItem(title: "Follow Distance", action: nil, keyEquivalent: "")
+        followDistanceHeader.isEnabled = false
+        menu.addItem(followDistanceHeader)
+
+        for distance in NekoFollowDistance.allCases {
+            let item = NSMenuItem(
+                title: "  \(distance.displayName)",
+                action: #selector(followDistanceSelected(_:)),
+                keyEquivalent: ""
+            )
+            item.target = self
+            item.representedObject = distance
+            item.state = Settings.shared.currentFollowDistance == distance ? .on : .off
+            menu.addItem(item)
+        }
+
+        menu.addItem(NSMenuItem.separator())
+
+        let themeHeader = NSMenuItem(title: "Theme", action: nil, keyEquivalent: "")
+        themeHeader.isEnabled = false
+        menu.addItem(themeHeader)
+
+        for theme in NekoTheme.allCases {
+            let item = NSMenuItem(
+                title: "  \(theme.displayName)",
+                action: #selector(themeSelected(_:)),
+                keyEquivalent: ""
+            )
+            item.target = self
+            item.representedObject = theme
+            item.state = Settings.shared.currentTheme == theme ? .on : .off
+            menu.addItem(item)
+        }
+
+        menu.addItem(NSMenuItem.separator())
         let enableItem = NSMenuItem(
             title: Settings.shared.nekoEnabled ? "Pause Neko" : "Resume Neko",
             action: #selector(toggleEnabled(_:)),
@@ -117,6 +153,28 @@ final class StatusBarController {
         menu.update()
         Settings.shared.currentSpeed = speed
         onSpeedChange?()
+    }
+
+    @objc private func followDistanceSelected(_ sender: NSMenuItem) {
+        guard let menu = statusItem.menu,
+              let distance = sender.representedObject as? NekoFollowDistance else { return }
+
+        for item in menu.items where item.representedObject is NekoFollowDistance {
+            item.state = item === sender ? .on : .off
+        }
+        menu.update()
+        Settings.shared.currentFollowDistance = distance
+    }
+
+    @objc private func themeSelected(_ sender: NSMenuItem) {
+        guard let menu = statusItem.menu,
+              let theme = sender.representedObject as? NekoTheme else { return }
+
+        for item in menu.items where item.representedObject is NekoTheme {
+            item.state = item === sender ? .on : .off
+        }
+        menu.update()
+        Settings.shared.currentTheme = theme
     }
 
     @objc private func toggleEnabled(_ sender: NSMenuItem) {

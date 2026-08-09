@@ -8,7 +8,8 @@ struct ContentView: View {
         NekoAnimation(
             animation: $store.anim,
             tick: $store.tick,
-            size: settings.currentSize
+            size: settings.currentSize,
+            theme: settings.currentTheme
         )
     }
 }

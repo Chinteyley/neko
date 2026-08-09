@@ -3,15 +3,19 @@ import XCTest
 
 final class NekoPlacementTests: XCTestCase {
     private var originalSize: NekoSize!
+    private var originalFollowDistance: NekoFollowDistance!
 
     override func setUp() {
         super.setUp()
         originalSize = Settings.shared.currentSize
+        originalFollowDistance = Settings.shared.currentFollowDistance
         Settings.shared.currentSize = .small
+        Settings.shared.currentFollowDistance = .close
     }
 
     override func tearDown() {
         Settings.shared.currentSize = originalSize
+        Settings.shared.currentFollowDistance = originalFollowDistance
         super.tearDown()
     }
 

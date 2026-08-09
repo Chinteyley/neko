@@ -4,9 +4,10 @@ struct NekoAnimation: View {
     @Binding var animation: [NekoState]
     @Binding var tick: Int
     var size: NekoSize
+    var theme: NekoTheme
 
     var body: some View {
-        Neko(state: $animation[tick % animation.count], size: size)
+        Neko(state: $animation[tick % animation.count], size: size, theme: theme)
     }
 }
 
@@ -15,7 +16,8 @@ struct NekoAnimation_Previews: PreviewProvider {
         NekoAnimation(
             animation: Binding.constant([.sleeping1, .sleeping2]),
             tick: Binding.constant(0),
-            size: .small
+            size: .small,
+            theme: .classic
         )
     }
 }
