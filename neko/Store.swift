@@ -29,6 +29,16 @@ final class Store: ObservableObject {
         self.direction = nextDirection(mouseLoc, nekoLoc)
     }
 
+    func relocate(to location: NSPoint, mouseLocation: NSPoint) {
+        nekoLoc = location
+        mouseLoc = mouseLocation
+        direction = .none
+        tick = 0
+        ticksSinceLastMove = 0
+        thinkingTimeRemaining = 0
+        anim = [.idle]
+    }
+
     func nextTick(_ newMouseLoc: NSPoint) -> NSPoint {
         tick += 1
 

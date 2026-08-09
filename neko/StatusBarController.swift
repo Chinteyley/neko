@@ -4,6 +4,7 @@ final class StatusBarController {
     private var statusItem: NSStatusItem
     var onSpeedChange: (() -> Void)?
     var onToggleEnabled: (() -> Void)?
+    var onBringNekoHere: (() -> Void)?
     
     init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -73,6 +74,14 @@ final class StatusBarController {
         enableItem.keyEquivalentModifierMask = [.command, .option]
         menu.addItem(enableItem)
 
+        let bringItem = NSMenuItem(
+            title: "Bring Neko Here",
+            action: #selector(bringNekoHere(_:)),
+            keyEquivalent: ""
+        )
+        bringItem.target = self
+        menu.addItem(bringItem)
+
         let quitItem = NSMenuItem(
             title: "Quit Neko",
             action: #selector(quitApp),
@@ -115,6 +124,10 @@ final class StatusBarController {
         sender.title = Settings.shared.nekoEnabled ? "Pause Neko" : "Resume Neko"
         statusItem.menu?.update()
         onToggleEnabled?()
+    }
+
+    @objc private func bringNekoHere(_ sender: NSMenuItem) {
+        onBringNekoHere?()
     }
 
     @objc private func quitApp() {

@@ -44,6 +44,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             guard Settings.shared.nekoEnabled else { return }
             self?.restartAnimationTimer()
         }
+        statusBarController?.onBringNekoHere = { [weak self] in
+            self?.bringNekoHere()
+        }
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(screenParametersDidChange(_:)),
+            name: NSApplication.didChangeScreenParametersNotification,
+            object: NSApp
+        )
         
         Settings.shared.$currentSize
             .dropFirst()
@@ -64,6 +74,34 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             .store(in: &cancellables)
     }
     
+    func applicationWillTerminate(_ notification: Notification) {
+        NotificationCenter.default.removeObserver(
+            self,
+            name: NSApplication.didChangeScreenParametersNotification,
+            object: NSApp
+        )
+    }
+
+    @objc private func screenParametersDidChange(_ notification: Notification) {
+        let visibleFrames = NSScreen.screens.map(\.visibleFrame)
+        guard !isNekoFrameVisible(window.frame, in: visibleFrames) else { return }
+        bringNekoHere()
+    }
+
+    private func bringNekoHere() {
+        let mouseLocation = NSEvent.mouseLocation
+        let screens = NSScreen.screens
+        guard let screen = screens.first(where: { $0.frame.contains(mouseLocation) }) ?? screens.first else { return }
+
+        let origin = clampedNekoOrigin(
+            mouseLocation: mouseLocation,
+            windowSize: window.frame.size,
+            visibleFrame: screen.visibleFrame
+        )
+        store.relocate(to: origin, mouseLocation: mouseLocation)
+        window.setFrameOrigin(origin)
+    }
+
     private func updateWindowSize(_ size: NekoSize) {
         let newSize = size.rawValue
         window.setContentSize(NSSize(width: newSize, height: newSize))
@@ -94,5 +132,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.orderFrontRegardless()
         startAnimationTimer()
     }
+}
+
+func clampedNekoOrigin(mouseLocation: NSPoint, windowSize: NSSize, visibleFrame: NSRect) -> NSPoint {
+    let centered = NSPoint(
+        x: mouseLocation.x - windowSize.width / 2,
+        y: mouseLocation.y - windowSize.height / 2
+    )
+    let maxX = max(visibleFrame.minX, visibleFrame.maxX - windowSize.width)
+    let maxY = max(visibleFrame.minY, visibleFrame.maxY - windowSize.height)
+
+    return NSPoint(
+        x: min(max(centered.x, visibleFrame.minX), maxX),
+        y: min(max(centered.y, visibleFrame.minY), maxY)
+    )
+}
+
+func isNekoFrameVisible(_ frame: NSRect, in visibleFrames: [NSRect]) -> Bool {
+    visibleFrames.contains { $0.contains(frame) }
 }
 

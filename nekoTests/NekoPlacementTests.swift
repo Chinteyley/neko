@@ -1,0 +1,142 @@
+import XCTest
+@testable import neko
+
+final class NekoPlacementTests: XCTestCase {
+    private var originalSize: NekoSize!
+
+    override func setUp() {
+        super.setUp()
+        originalSize = Settings.shared.currentSize
+        Settings.shared.currentSize = .small
+    }
+
+    override func tearDown() {
+        Settings.shared.currentSize = originalSize
+        super.tearDown()
+    }
+
+    func testPlacementCentersPanelInsideVisibleFrame() {
+        let origin = clampedNekoOrigin(
+            mouseLocation: NSPoint(x: 500, y: 400),
+            windowSize: NSSize(width: 20, height: 20),
+            visibleFrame: NSRect(x: 0, y: 0, width: 1000, height: 800)
+        )
+
+        XCTAssertEqual(origin, NSPoint(x: 490, y: 390))
+    }
+
+    func testPlacementClampsAtVisibleFrameEdges() {
+        let visibleFrame = NSRect(x: 0, y: 25, width: 1000, height: 750)
+        let windowSize = NSSize(width: 20, height: 20)
+
+        XCTAssertEqual(
+            clampedNekoOrigin(
+                mouseLocation: NSPoint(x: 0, y: 0),
+                windowSize: windowSize,
+                visibleFrame: visibleFrame
+            ),
+            NSPoint(x: 0, y: 25)
+        )
+        XCTAssertEqual(
+            clampedNekoOrigin(
+                mouseLocation: NSPoint(x: 1000, y: 800),
+                windowSize: windowSize,
+                visibleFrame: visibleFrame
+            ),
+            NSPoint(x: 980, y: 755)
+        )
+    }
+
+    func testPlacementClampsInsideNegativeOriginVisibleFrame() {
+        let origin = clampedNekoOrigin(
+            mouseLocation: NSPoint(x: -1920, y: 0),
+            windowSize: NSSize(width: 32, height: 32),
+            visibleFrame: NSRect(x: -1920, y: 23, width: 1920, height: 1057)
+        )
+
+        XCTAssertEqual(origin, NSPoint(x: -1920, y: 23))
+    }
+
+    func testVisibilityRequiresCompleteContainment() {
+        let visibleFrame = NSRect(x: 0, y: 25, width: 1000, height: 750)
+
+        XCTAssertTrue(isNekoFrameVisible(NSRect(x: 10, y: 30, width: 20, height: 20), in: [visibleFrame]))
+        XCTAssertFalse(isNekoFrameVisible(NSRect(x: 990, y: 30, width: 20, height: 20), in: [visibleFrame]))
+    }
+
+    func testRelocateClearsThinkingAndStartsPursuitFromNewLocation() {
+        let arrival = NSPoint(x: 32, y: 0)
+        let store = Store(withMouseLoc: arrival, andNekoLoc: NSPoint(x: 0, y: 0))
+        _ = store.nextTick(arrival)
+        _ = store.nextTick(arrival)
+        _ = store.nextTick(arrival)
+        assertThinking(store)
+
+        let location = NSPoint(x: 100, y: 100)
+        store.relocate(to: location, mouseLocation: location)
+
+        XCTAssertEqual(store.nekoLoc, location)
+        XCTAssertEqual(store.mouseLoc, location)
+        XCTAssertEqual(store.tick, 0)
+        assertIdle(store)
+        XCTAssertEqual(store.nextTick(location), location)
+
+        let target = NSPoint(x: 132, y: 100)
+        XCTAssertEqual(store.nextTick(target), location)
+        XCTAssertEqual(store.nextTick(target), NSPoint(x: 116, y: 100))
+    }
+
+    func testRelocateResetsIdleProgression() {
+        let location = NSPoint(x: 0, y: 0)
+        let store = Store(withMouseLoc: location, andNekoLoc: location)
+
+        for _ in 0..<9 {
+            _ = store.nextTick(location)
+        }
+        assertGrooming(store)
+
+        let relocated = NSPoint(x: 100, y: 100)
+        store.relocate(to: relocated, mouseLocation: relocated)
+        _ = store.nextTick(relocated)
+
+        assertIdle(store)
+    }
+
+    func testBringMenuActionInvokesCallbackOnce() {
+        let controller = StatusBarController()
+        var calls = 0
+        controller.onBringNekoHere = { calls += 1 }
+
+        let sent = NSApp.sendAction(
+            NSSelectorFromString("bringNekoHere:"),
+            to: controller,
+            from: NSMenuItem()
+        )
+
+        XCTAssertTrue(sent)
+        XCTAssertEqual(calls, 1)
+    }
+
+    private func assertThinking(_ store: Store, file: StaticString = #filePath, line: UInt = #line) {
+        guard store.anim.count == 1, case .thinking = store.anim[0] else {
+            XCTFail("Expected thinking animation", file: file, line: line)
+            return
+        }
+    }
+
+    private func assertIdle(_ store: Store, file: StaticString = #filePath, line: UInt = #line) {
+        guard store.anim.count == 1, case .idle = store.anim[0] else {
+            XCTFail("Expected idle animation", file: file, line: line)
+            return
+        }
+    }
+
+    private func assertGrooming(_ store: Store, file: StaticString = #filePath, line: UInt = #line) {
+        guard store.anim.count == 2,
+              case .grooming1 = store.anim[0],
+              case .grooming2 = store.anim[1] else {
+            XCTFail("Expected grooming animation", file: file, line: line)
+            return
+        }
+    }
+}
