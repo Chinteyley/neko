@@ -32,15 +32,20 @@ final class Store: ObservableObject {
 
         let newDirection = nextDirection(newMouseLoc, nekoLoc)
         if direction != newDirection {
-            tick = 0
-            if direction == .none {
-                anim = [.alert]
-            } else {
-                anim = [.idle]
-            }
+            let wasIdle = direction == .none
             direction = newDirection
+            tick = 0
             ticksSinceLastMove = 0
-            return nekoLoc
+
+            if newDirection == .none {
+                anim = [.idle]
+                return nekoLoc
+            }
+
+            if wasIdle {
+                anim = [.alert]
+                return nekoLoc
+            }
         }
 
         if mouseLoc == newMouseLoc {
