@@ -85,7 +85,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = Settings.shared.currentSpeed.rawValue
+            context.duration = Settings.shared.currentSpeed.rawValue * 0.5
             context.timingFunction = CAMediaTimingFunction(name: .linear)
             var frame = window.frame
             frame.origin = origin
