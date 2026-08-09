@@ -18,7 +18,18 @@
 		43F8AEA6259F843400092212 /* StatusBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43F8AEA7259F843400092212 /* StatusBarController.swift */; };
 		43F8AEB0260000000000001 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43F8AEB1260000000000001 /* main.swift */; };
 		7BEB3CE72F1549D300F6C5C9 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 7BEB3CE62F1549D300F6C5C9 /* AppIcon.icon */; };
+		A10000010000000000000001 /* StoreThinkingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000002 /* StoreThinkingTests.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A10000040000000000000004 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 43F8AE75259F5CF500092212 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 43F8AE7C259F5CF500092212;
+			remoteInfo = neko;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		43F8AE7D259F5CF500092212 /* neko.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = neko.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -35,10 +46,19 @@
 		43F8AEA7259F843400092212 /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
 		43F8AEB1260000000000001 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		7BEB3CE62F1549D300F6C5C9 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
+		A10000020000000000000002 /* StoreThinkingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreThinkingTests.swift; sourceTree = "<group>"; };
+		A10000030000000000000003 /* nekoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = nekoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		43F8AE7A259F5CF500092212 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A10000070000000000000007 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -52,6 +72,7 @@
 			isa = PBXGroup;
 			children = (
 				43F8AE7F259F5CF500092212 /* neko */,
+				A10000060000000000000006 /* nekoTests */,
 				43F8AE7E259F5CF500092212 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -60,8 +81,17 @@
 			isa = PBXGroup;
 			children = (
 				43F8AE7D259F5CF500092212 /* neko.app */,
+				A10000030000000000000003 /* nekoTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		A10000060000000000000006 /* nekoTests */ = {
+			isa = PBXGroup;
+			children = (
+				A10000020000000000000002 /* StoreThinkingTests.swift */,
+			);
+			path = nekoTests;
 			sourceTree = "<group>";
 		};
 		43F8AE7F259F5CF500092212 /* neko */ = {
@@ -112,6 +142,23 @@
 			productReference = 43F8AE7D259F5CF500092212 /* neko.app */;
 			productType = "com.apple.product-type.application";
 		};
+		A10000090000000000000009 /* nekoTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A100000C000000000000000C /* Build configuration list for PBXNativeTarget "nekoTests" */;
+			buildPhases = (
+				A10000080000000000000008 /* Sources */,
+				A10000070000000000000007 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A10000050000000000000005 /* PBXTargetDependency */,
+			);
+			name = nekoTests;
+			productName = nekoTests;
+			productReference = A10000030000000000000003 /* nekoTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -124,6 +171,10 @@
 				TargetAttributes = {
 					43F8AE7C259F5CF500092212 = {
 						CreatedOnToolsVersion = 12.2;
+					};
+					A10000090000000000000009 = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = 43F8AE7C259F5CF500092212;
 					};
 				};
 			};
@@ -141,6 +192,7 @@
 			projectRoot = "";
 			targets = (
 				43F8AE7C259F5CF500092212 /* neko */,
+				A10000090000000000000009 /* nekoTests */,
 			);
 		};
 /* End PBXProject section */
@@ -174,7 +226,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A10000080000000000000008 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000010000000000000001 /* StoreThinkingTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A10000050000000000000005 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 43F8AE7C259F5CF500092212 /* neko */;
+			targetProxy = A10000040000000000000004 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		43F8AE8E259F5CF600092212 /* Debug */ = {
@@ -361,6 +429,34 @@
 			};
 			name = Release;
 		};
+		A100000A000000000000000A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.ctey.nekoTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/neko.app/Contents/MacOS/neko";
+			};
+			name = Debug;
+		};
+		A100000B000000000000000B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.ctey.nekoTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/neko.app/Contents/MacOS/neko";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -378,6 +474,15 @@
 			buildConfigurations = (
 				43F8AE91259F5CF600092212 /* Debug */,
 				43F8AE92259F5CF600092212 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A100000C000000000000000C /* Build configuration list for PBXNativeTarget "nekoTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A100000A000000000000000A /* Debug */,
+				A100000B000000000000000B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

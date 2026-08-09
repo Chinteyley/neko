@@ -15,6 +15,8 @@ enum Direction {
 final class Store: ObservableObject {
     private var direction: Direction
     private var ticksSinceLastMove = 0
+    private var thinkingTimeRemaining: TimeInterval = 0
+    private let thinkingDuration: TimeInterval = 0.6
 
     @Published var nekoLoc: NSPoint = NSPoint(x: 0, y: 0)
     @Published var mouseLoc: NSPoint = NSPoint(x: 0, y: 0)
@@ -36,14 +38,31 @@ final class Store: ObservableObject {
             direction = newDirection
             tick = 0
             ticksSinceLastMove = 0
+            thinkingTimeRemaining = 0
 
             if newDirection == .none {
-                anim = [.idle]
+                if mouseLoc == newMouseLoc {
+                    thinkingTimeRemaining = thinkingDuration
+                    anim = [.thinking]
+                } else {
+                    anim = [.idle]
+                }
                 return nekoLoc
             }
 
             if wasIdle {
                 anim = [.alert]
+                return nekoLoc
+            }
+        }
+        if mouseLoc != newMouseLoc {
+            thinkingTimeRemaining = 0
+        }
+
+        if thinkingTimeRemaining > thinkingDuration.ulp {
+            thinkingTimeRemaining -= Settings.shared.currentSpeed.rawValue
+            if thinkingTimeRemaining > thinkingDuration.ulp {
+                anim = [.thinking]
                 return nekoLoc
             }
         }
