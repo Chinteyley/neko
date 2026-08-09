@@ -5,6 +5,7 @@ final class StoreThinkingTests: XCTestCase {
     private var originalSize: NekoSize!
     private var originalSpeed: NekoSpeed!
     private var originalFollowDistance: NekoFollowDistance!
+    private var now: Date!
 
     override func setUp() {
         super.setUp()
@@ -13,6 +14,7 @@ final class StoreThinkingTests: XCTestCase {
         originalFollowDistance = Settings.shared.currentFollowDistance
         Settings.shared.currentSize = .small
         Settings.shared.currentFollowDistance = .close
+        now = Date(timeIntervalSinceReferenceDate: 0)
     }
 
     override func tearDown() {
@@ -30,26 +32,32 @@ final class StoreThinkingTests: XCTestCase {
             assertThinking(store)
 
             for _ in 1..<displayedTicks {
+                now = now.addingTimeInterval(speed.rawValue)
                 _ = store.nextTick(arrival)
                 assertThinking(store)
             }
 
+            now = now.addingTimeInterval(speed.rawValue)
             _ = store.nextTick(arrival)
             assertIdle(store)
             XCTAssertEqual(Settings.shared.currentSpeed.rawValue, speed.rawValue)
         }
     }
 
-    func testSlowToFastSpeedChangeKeepsThinkingForApproximatelyPointSixSeconds() {
+    func testSpeedChangeAtPointTwoThreeSecondsEndsThinkingOnFirstTickAfterDeadline() {
         let store = arrivedStore(speed: .slow)
         assertThinking(store)
+
+        now = Date(timeIntervalSinceReferenceDate: 0.23)
         Settings.shared.currentSpeed = .fast
 
-        for _ in 0..<5 {
+        for tickTime in [0.33, 0.43, 0.53] {
+            now = Date(timeIntervalSinceReferenceDate: tickTime)
             _ = store.nextTick(arrival)
             assertThinking(store)
         }
 
+        now = Date(timeIntervalSinceReferenceDate: 0.63)
         _ = store.nextTick(arrival)
         assertIdle(store)
     }
@@ -60,10 +68,12 @@ final class StoreThinkingTests: XCTestCase {
         Settings.shared.currentSpeed = .slow
 
         for _ in 0..<2 {
+            now = now.addingTimeInterval(Settings.shared.currentSpeed.rawValue)
             _ = store.nextTick(arrival)
             assertThinking(store)
         }
 
+        now = now.addingTimeInterval(Settings.shared.currentSpeed.rawValue)
         _ = store.nextTick(arrival)
         assertIdle(store)
     }
@@ -101,10 +111,12 @@ final class StoreThinkingTests: XCTestCase {
         let store = arrivedStore(speed: .normal)
 
         for _ in 1..<4 {
+            now = now.addingTimeInterval(Settings.shared.currentSpeed.rawValue)
             _ = store.nextTick(arrival)
             assertThinking(store)
         }
 
+        now = now.addingTimeInterval(Settings.shared.currentSpeed.rawValue)
         _ = store.nextTick(arrival)
         assertIdle(store)
 
@@ -123,7 +135,12 @@ final class StoreThinkingTests: XCTestCase {
 
     private func arrivedStore(speed: NekoSpeed) -> Store {
         Settings.shared.currentSpeed = speed
-        let store = Store(withMouseLoc: arrival, andNekoLoc: NSPoint(x: 0, y: 0))
+        now = Date(timeIntervalSinceReferenceDate: 0)
+        let store = Store(
+            withMouseLoc: arrival,
+            andNekoLoc: NSPoint(x: 0, y: 0),
+            now: { self.now }
+        )
         _ = store.nextTick(arrival)
         _ = store.nextTick(arrival)
         _ = store.nextTick(arrival)

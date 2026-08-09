@@ -105,6 +105,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func updateWindowSize(_ size: NekoSize) {
         let newSize = size.rawValue
         window.setContentSize(NSSize(width: newSize, height: newSize))
+        let visibleFrames = NSScreen.screens.map(\.visibleFrame)
+        guard requiresNekoRecovery(window.frame, in: visibleFrames) else { return }
+        bringNekoHere()
     }
 
     private func startAnimationTimer() {
@@ -150,5 +153,9 @@ func clampedNekoOrigin(mouseLocation: NSPoint, windowSize: NSSize, visibleFrame:
 
 func isNekoFrameVisible(_ frame: NSRect, in visibleFrames: [NSRect]) -> Bool {
     visibleFrames.contains { $0.contains(frame) }
+}
+
+func requiresNekoRecovery(_ frame: NSRect, in visibleFrames: [NSRect]) -> Bool {
+    !isNekoFrameVisible(frame, in: visibleFrames)
 }
 

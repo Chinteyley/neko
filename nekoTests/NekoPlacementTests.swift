@@ -68,6 +68,20 @@ final class NekoPlacementTests: XCTestCase {
         XCTAssertFalse(isNekoFrameVisible(NSRect(x: 990, y: 30, width: 20, height: 20), in: [visibleFrame]))
     }
 
+    func testResizeRecoveryIsRequiredOnlyWhenGrowthClipsTheNewFrame() {
+        let visibleFrames = [
+            NSRect(x: -200, y: 0, width: 200, height: 100),
+            NSRect(x: 0, y: 0, width: 100, height: 100)
+        ]
+        let edgeSmallFrame = NSRect(x: 84, y: 84, width: 16, height: 16)
+        let edgeLargeFrame = NSRect(x: 84, y: 68, width: 32, height: 32)
+        let centeredLargeFrame = NSRect(x: 34, y: 34, width: 32, height: 32)
+
+        XCTAssertFalse(requiresNekoRecovery(edgeSmallFrame, in: visibleFrames))
+        XCTAssertTrue(requiresNekoRecovery(edgeLargeFrame, in: visibleFrames))
+        XCTAssertFalse(requiresNekoRecovery(centeredLargeFrame, in: visibleFrames))
+    }
+
     func testRelocateClearsThinkingAndStartsPursuitFromNewLocation() {
         let arrival = NSPoint(x: 32, y: 0)
         let store = Store(withMouseLoc: arrival, andNekoLoc: NSPoint(x: 0, y: 0))

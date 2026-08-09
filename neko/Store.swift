@@ -15,17 +15,23 @@ enum Direction {
 final class Store: ObservableObject {
     private var direction: Direction
     private var ticksSinceLastMove = 0
-    private var thinkingTimeRemaining: TimeInterval = 0
+    private var thinkingDeadline: Date?
     private let thinkingDuration: TimeInterval = 0.6
+    private let now: () -> Date
 
     @Published var nekoLoc: NSPoint = NSPoint(x: 0, y: 0)
     @Published var mouseLoc: NSPoint = NSPoint(x: 0, y: 0)
     @Published var tick: Int = 0
     @Published var anim: [NekoState] = [.idle]
 
-    init(withMouseLoc mouseLoc: NSPoint, andNekoLoc nekoLoc: NSPoint) {
+    init(
+        withMouseLoc mouseLoc: NSPoint,
+        andNekoLoc nekoLoc: NSPoint,
+        now: @escaping () -> Date = Date.init
+    ) {
         self.mouseLoc = mouseLoc
         self.nekoLoc = nekoLoc
+        self.now = now
         self.direction = nextDirection(
             mouseLoc,
             nekoLoc,
@@ -39,7 +45,7 @@ final class Store: ObservableObject {
         direction = .none
         tick = 0
         ticksSinceLastMove = 0
-        thinkingTimeRemaining = 0
+        thinkingDeadline = nil
         anim = [.idle]
     }
 
@@ -55,11 +61,11 @@ final class Store: ObservableObject {
             direction = newDirection
             tick = 0
             ticksSinceLastMove = 0
-            thinkingTimeRemaining = 0
+            thinkingDeadline = nil
 
             if newDirection == .none {
                 if mouseLoc == newMouseLoc {
-                    thinkingTimeRemaining = thinkingDuration
+                    thinkingDeadline = now().addingTimeInterval(thinkingDuration)
                     anim = [.thinking]
                 } else {
                     anim = [.idle]
@@ -73,15 +79,15 @@ final class Store: ObservableObject {
             }
         }
         if mouseLoc != newMouseLoc {
-            thinkingTimeRemaining = 0
+            thinkingDeadline = nil
         }
 
-        if thinkingTimeRemaining > thinkingDuration.ulp {
-            thinkingTimeRemaining -= Settings.shared.currentSpeed.rawValue
-            if thinkingTimeRemaining > thinkingDuration.ulp {
+        if let thinkingDeadline {
+            if now() < thinkingDeadline {
                 anim = [.thinking]
                 return nekoLoc
             }
+            self.thinkingDeadline = nil
         }
 
         if mouseLoc == newMouseLoc {
