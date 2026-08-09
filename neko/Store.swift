@@ -104,31 +104,26 @@ private var step: CGFloat { Settings.shared.currentSize.rawValue }
 
 private func nextDirection(_ mouseLoc: NSPoint, _ nekoLoc: NSPoint) -> Direction {
     let d = delta(nekoLoc, mouseLoc)
-    if d.x >= 1 {
-        if d.y > -1 && d.y < 1 {
-            return .west
-        } else if d.y >= 1 {
-            return .southWest
-        } else {
-            return .northWest
-        }
-    } else if d.x <= -1 {
-        if d.y > -1 && d.y < 1 {
-            return .east
-        } else if d.y >= 1 {
-            return .southEast
-        } else {
-            return .northEast
-        }
-    } else {
-        if d.y > -1 && d.y < 1{
-            return .none
-        } else if d.y >= 1 {
-            return .south
-        } else {
-            return .north
-        }
+    let horizontal = abs(d.x)
+    let vertical = abs(d.y)
+    let diagonalThreshold: CGFloat = 0.4142
+
+    if horizontal < 1 && vertical < 1 {
+        return .none
     }
+
+    if horizontal >= 1 && vertical >= horizontal * diagonalThreshold && horizontal >= vertical * diagonalThreshold {
+        if d.x >= 0 {
+            return d.y >= 0 ? .southWest : .northWest
+        }
+        return d.y >= 0 ? .southEast : .northEast
+    }
+
+    if horizontal >= vertical {
+        return d.x >= 0 ? .west : .east
+    }
+
+    return d.y >= 0 ? .south : .north
 }
 
 private func delta(_ p1: NSPoint, _ p2: NSPoint) -> NSPoint {
