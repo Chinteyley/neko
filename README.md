@@ -66,6 +66,7 @@ Conventions:
 
 ## Credits
 
-Sprites taken from [skiftOS].
+- Maintained by Chinteyley.
+- Original sprites are taken from [skiftOS].
 
 [skiftOS]: https://github.com/skiftOS/skift
