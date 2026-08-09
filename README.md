@@ -8,7 +8,8 @@ A tiny menu bar kitten that follows your mouse on macOS.
 
 ## Features
 
-- Animated pixel sprite that tracks the cursor.
+- Animated eight-direction pixel sprite that follows the cursor along a direct path.
+- Crisp, step-based movement with immediate direction changes between movement gaits.
 - Always-on-top window, including fullscreen apps.
 - Menu bar app only (no Dock icon).
 - Three size presets, scaled with crisp pixels.
@@ -21,7 +22,8 @@ Or build from source:
 
 ```bash
 xcodebuild -project neko.xcodeproj -scheme neko build \
-  CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+  CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO \
+  MACOSX_DEPLOYMENT_TARGET=12.0
 
 open build/Debug/neko.app
 ```
@@ -41,9 +43,8 @@ open build/Debug/neko.app
 
 - App entry and window behavior: `neko/AppDelegate.swift`.
 - Menu bar UI and actions: `neko/StatusBarController.swift`.
-- Animation state machine: `neko/Neko.swift`.
-- Frame selection logic: `neko/NekoAnimation.swift`.
-- Movement logic: `neko/Store.swift`.
+- Movement and direction state machine: `neko/Store.swift`.
+- Sprite states and frame selection: `neko/Neko.swift` and `neko/NekoAnimation.swift`.
 - Settings and persistence: `neko/Settings.swift`.
 - SwiftUI wrapper: `neko/ContentView.swift`.
 - Sprite sheet assets: `neko/Assets.xcassets/Neko.imageset`.
@@ -58,7 +59,9 @@ Conventions:
 ## Project Notes
 
 - Swift + SwiftUI, no storyboards.
-- Timer-driven updates (default 0.16s).
+- Timer-driven movement updates (default 0.16s).
+- Position advances toward the cursor by one size-scaled step per update.
+- Sprite gait uses the nearest of eight directions while preserving straight movement paths.
 - Sprite sheet: 5 columns x 6 rows, base 16x16 px.
 
 ## Credits
