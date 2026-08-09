@@ -32,15 +32,20 @@ final class Store: ObservableObject {
 
         let newDirection = nextDirection(newMouseLoc, nekoLoc)
         if direction != newDirection {
-            tick = 0
-            if direction == .none {
-                anim = [.alert]
-            } else {
-                anim = [.idle]
-            }
+            let wasIdle = direction == .none
             direction = newDirection
+            tick = 0
             ticksSinceLastMove = 0
-            return nekoLoc
+
+            if newDirection == .none {
+                anim = [.idle]
+                return nekoLoc
+            }
+
+            if wasIdle {
+                anim = [.alert]
+                return nekoLoc
+            }
         }
 
         if mouseLoc == newMouseLoc {
@@ -62,36 +67,42 @@ final class Store: ObservableObject {
             }
         case .northWest:
             anim = [.movingNorthWest1, .movingNorthWest2]
-            nekoLoc = move(-1, 1)
         case .north:
             anim = [.movingNorth1, .movingNorth2]
-            nekoLoc = move(0, 1)
         case .northEast:
             anim = [.movingNorthEast1, .movingNorthEast2]
-            nekoLoc = move(1, 1)
         case .east:
             anim = [.movingEast1, .movingEast2]
-            nekoLoc = move(1, 0)
         case .southEast:
             anim = [.movingSouthEast1, .movingSouthEast2]
-            nekoLoc = move(1, -1)
         case .south:
             anim = [.movingSouth1, .movingSouth2]
-            nekoLoc = move(0, -1)
         case .southWest:
             anim = [.movingSouthWest1, .movingSouthWest2]
-            nekoLoc = move(-1, -1)
         case .west:
             anim = [.movingWest1, .movingWest2]
-            nekoLoc = move(-1, 0)
+        }
+
+        if direction != .none {
+            nekoLoc = moveToward(newMouseLoc)
         }
 
         mouseLoc = newMouseLoc
         return nekoLoc
     }
 
-    private func move(_ xSteps: CGFloat, _ ySteps: CGFloat) -> NSPoint {
-        return NSPoint(x: nekoLoc.x + CGFloat(step) * xSteps, y: nekoLoc.y + CGFloat(step) * ySteps)
+    private func moveToward(_ target: NSPoint) -> NSPoint {
+        let xDistance = target.x - nekoLoc.x
+        let yDistance = target.y - nekoLoc.y
+        let distance = sqrt(xDistance * xDistance + yDistance * yDistance)
+        let travel = min(step, distance)
+
+        guard distance > 0 else { return nekoLoc }
+
+        return NSPoint(
+            x: nekoLoc.x + xDistance / distance * travel,
+            y: nekoLoc.y + yDistance / distance * travel
+        )
     }
 }
 
@@ -99,31 +110,29 @@ private var step: CGFloat { Settings.shared.currentSize.rawValue }
 
 private func nextDirection(_ mouseLoc: NSPoint, _ nekoLoc: NSPoint) -> Direction {
     let d = delta(nekoLoc, mouseLoc)
-    if d.x >= 1 {
-        if d.y > -1 && d.y < 1 {
-            return .west
-        } else if d.y >= 1 {
-            return .southWest
-        } else {
-            return .northWest
-        }
-    } else if d.x <= -1 {
-        if d.y > -1 && d.y < 1 {
-            return .east
-        } else if d.y >= 1 {
-            return .southEast
-        } else {
-            return .northEast
-        }
-    } else {
-        if d.y > -1 && d.y < 1{
-            return .none
-        } else if d.y >= 1 {
-            return .south
-        } else {
-            return .north
-        }
+    let horizontal = abs(d.x)
+    let vertical = abs(d.y)
+    let distance = sqrt(d.x * d.x + d.y * d.y)
+    let diagonalThreshold: CGFloat = 0.4142
+
+    if distance < 1 {
+        return .none
     }
+
+    if horizontal > 0 && vertical > 0 &&
+        vertical >= horizontal * diagonalThreshold &&
+        horizontal >= vertical * diagonalThreshold {
+        if d.x >= 0 {
+            return d.y >= 0 ? .southWest : .northWest
+        }
+        return d.y >= 0 ? .southEast : .northEast
+    }
+
+    if horizontal >= vertical {
+        return d.x >= 0 ? .west : .east
+    }
+
+    return d.y >= 0 ? .south : .north
 }
 
 private func delta(_ p1: NSPoint, _ p2: NSPoint) -> NSPoint {

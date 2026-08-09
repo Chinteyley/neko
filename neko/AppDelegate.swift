@@ -1,6 +1,5 @@
 import Cocoa
 import SwiftUI
-import QuartzCore
 import Combine
 
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -74,22 +73,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         animationTimer = Timer.scheduledTimer(withTimeInterval: Settings.shared.currentSpeed.rawValue, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             DispatchQueue.main.async {
-                self.moveWindow(to: self.store.nextTick(NSEvent.mouseLocation))
+                self.window.setFrameOrigin(self.store.nextTick(NSEvent.mouseLocation))
             }
-        }
-    }
-    private func moveWindow(to origin: NSPoint) {
-        guard !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else {
-            window.setFrameOrigin(origin)
-            return
-        }
-
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = Settings.shared.currentSpeed.rawValue
-            context.timingFunction = CAMediaTimingFunction(name: .linear)
-            var frame = window.frame
-            frame.origin = origin
-            window.animator().setFrame(frame, display: true)
         }
     }
 
