@@ -44,9 +44,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             guard Settings.shared.nekoEnabled else { return }
             self?.restartAnimationTimer()
         }
-        statusBarController?.onBringNekoHere = { [weak self] in
-            self?.bringNekoHere()
-        }
 
         NotificationCenter.default.addObserver(
             self,

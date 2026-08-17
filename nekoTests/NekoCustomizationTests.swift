@@ -168,28 +168,32 @@ final class NekoCustomizationTests: XCTestCase {
         assertThinking(store)
     }
 
-    func testFollowDistanceMenuSelectorIsIsolatedAndPersistsEveryChoice() {
-        Settings.shared.currentSize = .large
-        Settings.shared.currentSpeed = .fast
-        Settings.shared.currentTheme = .ginger
+    func testStatusMenuUsesPlainSizeNamesAndOmitsDistanceAndRecovery() {
+        Settings.shared.nekoEnabled = true
         let controller = StatusBarController()
+        let menu = Mirror(reflecting: controller).children
+            .compactMap { $0.label == "statusItem" ? $0.value as? NSStatusItem : nil }
+            .first?.menu
 
-        for distance in NekoFollowDistance.allCases {
-            let sender = NSMenuItem()
-            sender.representedObject = distance
-            let sent = NSApp.sendAction(
-                NSSelectorFromString("followDistanceSelected:"),
-                to: controller,
-                from: sender
-            )
-
-            XCTAssertTrue(sent)
-            XCTAssertEqual(Settings.shared.currentFollowDistance, distance)
-            XCTAssertEqual(UserDefaults.standard.string(forKey: "nekoFollowDistance"), distance.rawValue)
-            XCTAssertEqual(Settings.shared.currentSize, .large)
-            XCTAssertEqual(Settings.shared.currentSpeed, .fast)
-            XCTAssertEqual(Settings.shared.currentTheme, .ginger)
-        }
+        XCTAssertEqual(menu?.items.map(\.title), [
+            "Size",
+            "  Small",
+            "  Medium",
+            "  Large",
+            "",
+            "Speed",
+            "  Slow",
+            "  Normal",
+            "  Fast",
+            "",
+            "Theme",
+            "  Classic",
+            "  Ginger",
+            "  Blue/Gray",
+            "",
+            "Pause Neko",
+            "Quit Neko",
+        ])
     }
 
     func testThemeMenuSelectorIsIsolatedAndPersistsEveryChoice() {

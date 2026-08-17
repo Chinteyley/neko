@@ -4,7 +4,6 @@ final class StatusBarController {
     private var statusItem: NSStatusItem
     var onSpeedChange: (() -> Void)?
     var onToggleEnabled: (() -> Void)?
-    var onBringNekoHere: (() -> Void)?
     
     init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -36,7 +35,7 @@ final class StatusBarController {
         
         for size in NekoSize.allCases {
             let item = NSMenuItem(
-                title: "  \(size.displayName) (\(Int(size.rawValue))px)",
+                title: "  \(size.displayName)",
                 action: #selector(sizeSelected(_:)),
                 keyEquivalent: ""
             )
@@ -66,24 +65,6 @@ final class StatusBarController {
         
         menu.addItem(NSMenuItem.separator())
 
-        let followDistanceHeader = NSMenuItem(title: "Follow Distance", action: nil, keyEquivalent: "")
-        followDistanceHeader.isEnabled = false
-        menu.addItem(followDistanceHeader)
-
-        for distance in NekoFollowDistance.allCases {
-            let item = NSMenuItem(
-                title: "  \(distance.displayName)",
-                action: #selector(followDistanceSelected(_:)),
-                keyEquivalent: ""
-            )
-            item.target = self
-            item.representedObject = distance
-            item.state = Settings.shared.currentFollowDistance == distance ? .on : .off
-            menu.addItem(item)
-        }
-
-        menu.addItem(NSMenuItem.separator())
-
         let themeHeader = NSMenuItem(title: "Theme", action: nil, keyEquivalent: "")
         themeHeader.isEnabled = false
         menu.addItem(themeHeader)
@@ -109,14 +90,6 @@ final class StatusBarController {
         enableItem.target = self
         enableItem.keyEquivalentModifierMask = [.command, .option]
         menu.addItem(enableItem)
-
-        let bringItem = NSMenuItem(
-            title: "Bring Neko Here",
-            action: #selector(bringNekoHere(_:)),
-            keyEquivalent: ""
-        )
-        bringItem.target = self
-        menu.addItem(bringItem)
 
         let quitItem = NSMenuItem(
             title: "Quit Neko",
@@ -155,17 +128,6 @@ final class StatusBarController {
         onSpeedChange?()
     }
 
-    @objc private func followDistanceSelected(_ sender: NSMenuItem) {
-        guard let menu = statusItem.menu,
-              let distance = sender.representedObject as? NekoFollowDistance else { return }
-
-        for item in menu.items where item.representedObject is NekoFollowDistance {
-            item.state = item === sender ? .on : .off
-        }
-        menu.update()
-        Settings.shared.currentFollowDistance = distance
-    }
-
     @objc private func themeSelected(_ sender: NSMenuItem) {
         guard let menu = statusItem.menu,
               let theme = sender.representedObject as? NekoTheme else { return }
@@ -182,10 +144,6 @@ final class StatusBarController {
         sender.title = Settings.shared.nekoEnabled ? "Pause Neko" : "Resume Neko"
         statusItem.menu?.update()
         onToggleEnabled?()
-    }
-
-    @objc private func bringNekoHere(_ sender: NSMenuItem) {
-        onBringNekoHere?()
     }
 
     @objc private func quitApp() {
