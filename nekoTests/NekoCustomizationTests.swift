@@ -45,7 +45,8 @@ final class NekoCustomizationTests: XCTestCase {
         XCTAssertEqual(NekoFollowDistance.comfortable.resumeMultiplier, 3.5)
         XCTAssertEqual(NekoFollowDistance.far.stopMultiplier, 6)
         XCTAssertEqual(NekoFollowDistance.far.resumeMultiplier, 6.5)
-        XCTAssertEqual(NekoFollowDistance.fromStoredValue("far"), .far)
+        XCTAssertEqual(NekoFollowDistance.fromStoredValue("far"), .close)
+        XCTAssertEqual(NekoFollowDistance.fromStoredValue("comfortable"), .close)
         XCTAssertEqual(NekoFollowDistance.fromStoredValue(nil), .close)
         XCTAssertEqual(NekoFollowDistance.fromStoredValue("unknown"), .close)
 
