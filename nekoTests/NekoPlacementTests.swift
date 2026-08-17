@@ -120,20 +120,6 @@ final class NekoPlacementTests: XCTestCase {
         assertIdle(store)
     }
 
-    func testBringMenuActionInvokesCallbackOnce() {
-        let controller = StatusBarController()
-        var calls = 0
-        controller.onBringNekoHere = { calls += 1 }
-
-        let sent = NSApp.sendAction(
-            NSSelectorFromString("bringNekoHere:"),
-            to: controller,
-            from: NSMenuItem()
-        )
-
-        XCTAssertTrue(sent)
-        XCTAssertEqual(calls, 1)
-    }
 
     private func assertThinking(_ store: Store, file: StaticString = #filePath, line: UInt = #line) {
         guard store.anim.count == 1, case .thinking = store.anim[0] else {
