@@ -97,8 +97,8 @@ enum NekoFollowDistance: String, CaseIterable {
         stopMultiplier + 0.5
     }
 
-    static func fromStoredValue(_ value: String?) -> NekoFollowDistance {
-        NekoFollowDistance(rawValue: value ?? "") ?? .close
+    static func fromStoredValue(_: String?) -> NekoFollowDistance {
+        .close
     }
 }
 
