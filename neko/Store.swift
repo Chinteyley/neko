@@ -35,7 +35,7 @@ final class Store: ObservableObject {
         self.direction = nextDirection(
             mouseLoc,
             nekoLoc,
-            threshold: Settings.shared.currentFollowDistance.stopMultiplier
+            threshold: stopMultiplier
         )
     }
 
@@ -49,13 +49,16 @@ final class Store: ObservableObject {
         anim = [.idle]
     }
 
-    func nextTick(_ newMouseLoc: NSPoint) -> NSPoint {
+    func nextTick(_ newMouseLoc: NSPoint, visibleFrames: [NSRect] = []) -> NSPoint {
         tick += 1
 
-        let threshold = direction == .none
-            ? Settings.shared.currentFollowDistance.resumeMultiplier
-            : Settings.shared.currentFollowDistance.stopMultiplier
-        let newDirection = nextDirection(newMouseLoc, nekoLoc, threshold: threshold)
+        let still = !mouseMoved(from: mouseLoc, to: newMouseLoc)
+        let threshold = direction == .none ? resumeMultiplier : stopMultiplier
+        var newDirection = nextDirection(newMouseLoc, nekoLoc, threshold: threshold)
+        if shouldArrive(at: newMouseLoc) {
+            newDirection = .none
+        }
+
         if direction != newDirection {
             let wasIdle = direction == .none
             direction = newDirection
@@ -64,12 +67,7 @@ final class Store: ObservableObject {
             thinkingDeadline = nil
 
             if newDirection == .none {
-                if mouseLoc == newMouseLoc {
-                    thinkingDeadline = now().addingTimeInterval(thinkingDuration)
-                    anim = [.thinking]
-                } else {
-                    anim = [.idle]
-                }
+                arrive(still: still)
                 return nekoLoc
             }
 
@@ -78,7 +76,7 @@ final class Store: ObservableObject {
                 return nekoLoc
             }
         }
-        if mouseLoc != newMouseLoc {
+        if !still {
             thinkingDeadline = nil
         }
 
@@ -90,23 +88,82 @@ final class Store: ObservableObject {
             self.thinkingDeadline = nil
         }
 
-        if mouseLoc == newMouseLoc {
+        if still {
             ticksSinceLastMove += 1
         }
 
+        if direction == .none {
+            setIdleAnimation()
+            mouseLoc = newMouseLoc
+            return nekoLoc
+        }
+
+        let unconstrained = moveToward(newMouseLoc)
+        let constrained = constrainNekoOrigin(
+            proposed: unconstrained,
+            current: nekoLoc,
+            size: NSSize(width: step, height: step),
+            mouse: newMouseLoc,
+            visibleFrames: visibleFrames
+        )
+        let blocked = unconstrained != nekoLoc && constrained == nekoLoc
+
+        if blocked {
+            anim = [.scratching1, .scratching2]
+            mouseLoc = newMouseLoc
+            return nekoLoc
+        }
+
+        if constrained == nekoLoc {
+            arrive(still: still)
+            mouseLoc = newMouseLoc
+            return nekoLoc
+        }
+
+        setWalkAnimation()
+        nekoLoc = constrained
+        mouseLoc = newMouseLoc
+        return nekoLoc
+    }
+
+    private func shouldArrive(at mouse: NSPoint) -> Bool {
+        let sprite = NSRect(origin: nekoLoc, size: NSSize(width: step, height: step))
+            .insetBy(dx: -0.5, dy: -0.5)
+        if sprite.contains(mouse) {
+            return true
+        }
+        let distance = hypot(mouse.x - nekoLoc.x, mouse.y - nekoLoc.y)
+        return distance - stopRadius < 1
+    }
+
+    private func arrive(still: Bool) {
+        direction = .none
+        if still {
+            thinkingDeadline = now().addingTimeInterval(thinkingDuration)
+            anim = [.thinking]
+        } else {
+            anim = [.idle]
+        }
+    }
+
+    private func setIdleAnimation() {
+        anim = [.idle]
+
+        if ticksSinceLastMove > 33 {
+            anim = [.sleeping1, .sleeping1, .sleeping1, .sleeping1, .sleeping2, .sleeping2, .sleeping2, .sleeping2]
+        } else if ticksSinceLastMove > 31 {
+            anim = [.yawning, .yawning]
+        } else if ticksSinceLastMove > 16 {
+            anim = [.idle]
+        } else if ticksSinceLastMove > 8 {
+            anim = [.grooming1, .grooming2]
+        }
+    }
+
+    private func setWalkAnimation() {
         switch direction {
         case .none:
-            anim = [.idle]
-
-            if ticksSinceLastMove > 33 {
-                anim = [.sleeping1, .sleeping1, .sleeping1, .sleeping1, .sleeping2, .sleeping2, .sleeping2, .sleeping2]
-            } else if ticksSinceLastMove > 31 {
-                anim = [.yawning, .yawning]
-            } else if ticksSinceLastMove > 16 {
-                anim = [.idle]
-            } else if ticksSinceLastMove > 8 {
-                anim = [.grooming1, .grooming2]
-            }
+            break
         case .northWest:
             anim = [.movingNorthWest1, .movingNorthWest2]
         case .north:
@@ -124,13 +181,6 @@ final class Store: ObservableObject {
         case .west:
             anim = [.movingWest1, .movingWest2]
         }
-
-        if direction != .none {
-            nekoLoc = moveToward(newMouseLoc)
-        }
-
-        mouseLoc = newMouseLoc
-        return nekoLoc
     }
 
     private func moveToward(_ target: NSPoint) -> NSPoint {
@@ -148,10 +198,15 @@ final class Store: ObservableObject {
     }
 }
 
+private let stopMultiplier: CGFloat = 1
+private let resumeMultiplier: CGFloat = 1.5
+
 private var step: CGFloat { Settings.shared.currentSize.rawValue }
 
-private var stopRadius: CGFloat {
-    Settings.shared.currentFollowDistance.stopMultiplier * step
+private var stopRadius: CGFloat { stopMultiplier * step }
+
+private func mouseMoved(from: NSPoint, to: NSPoint) -> Bool {
+    hypot(to.x - from.x, to.y - from.y) >= 1
 }
 
 private func nextDirection(_ mouseLoc: NSPoint, _ nekoLoc: NSPoint, threshold: CGFloat) -> Direction {

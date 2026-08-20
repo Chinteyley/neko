@@ -1,118 +1,79 @@
 import AppKit
-import SwiftUI
 import XCTest
 @testable import neko
 
 final class NekoCustomizationTests: XCTestCase {
     private var originalSize: NekoSize!
     private var originalSpeed: NekoSpeed!
-    private var originalFollowDistance: NekoFollowDistance!
-    private var originalTheme: NekoTheme!
-    private var storedFollowDistance: Any?
-    private var storedTheme: Any?
 
     override func setUp() {
         super.setUp()
         originalSize = Settings.shared.currentSize
         originalSpeed = Settings.shared.currentSpeed
-        originalFollowDistance = Settings.shared.currentFollowDistance
-        originalTheme = Settings.shared.currentTheme
-        storedFollowDistance = UserDefaults.standard.object(forKey: "nekoFollowDistance")
-        storedTheme = UserDefaults.standard.object(forKey: "nekoTheme")
         Settings.shared.currentSize = .small
-        Settings.shared.currentFollowDistance = .close
-        Settings.shared.currentTheme = .classic
     }
 
     override func tearDown() {
         Settings.shared.currentSize = originalSize
         Settings.shared.currentSpeed = originalSpeed
-        Settings.shared.currentFollowDistance = originalFollowDistance
-        Settings.shared.currentTheme = originalTheme
-        restore(storedFollowDistance, forKey: "nekoFollowDistance")
-        restore(storedTheme, forKey: "nekoTheme")
         super.tearDown()
     }
 
-    func testCustomizationEnumsHaveStableValuesAndFallbacks() {
-        XCTAssertEqual(NekoFollowDistance.allCases, [.close, .comfortable, .far])
-        XCTAssertEqual(NekoFollowDistance.close.rawValue, "close")
-        XCTAssertEqual(NekoFollowDistance.comfortable.rawValue, "comfortable")
-        XCTAssertEqual(NekoFollowDistance.far.rawValue, "far")
-        XCTAssertEqual(NekoFollowDistance.close.stopMultiplier, 1)
-        XCTAssertEqual(NekoFollowDistance.close.resumeMultiplier, 1.5)
-        XCTAssertEqual(NekoFollowDistance.comfortable.stopMultiplier, 3)
-        XCTAssertEqual(NekoFollowDistance.comfortable.resumeMultiplier, 3.5)
-        XCTAssertEqual(NekoFollowDistance.far.stopMultiplier, 6)
-        XCTAssertEqual(NekoFollowDistance.far.resumeMultiplier, 6.5)
-        XCTAssertEqual(NekoFollowDistance.fromStoredValue("far"), .close)
-        XCTAssertEqual(NekoFollowDistance.fromStoredValue("comfortable"), .close)
-        XCTAssertEqual(NekoFollowDistance.fromStoredValue(nil), .close)
-        XCTAssertEqual(NekoFollowDistance.fromStoredValue("unknown"), .close)
-
-        XCTAssertEqual(NekoTheme.allCases, [.classic, .ginger, .blueGray])
-        XCTAssertEqual(NekoTheme.classic.rawValue, "classic")
-        XCTAssertEqual(NekoTheme.ginger.rawValue, "ginger")
-        XCTAssertEqual(NekoTheme.blueGray.rawValue, "blueGray")
-        XCTAssertEqual(NekoTheme.fromStoredValue("ginger"), .ginger)
-        XCTAssertEqual(NekoTheme.fromStoredValue(nil), .classic)
-        XCTAssertEqual(NekoTheme.fromStoredValue("unknown"), .classic)
+    func testSizePresets() {
+        XCTAssertEqual(NekoSize.allCases, [.small, .medium, .large])
+        XCTAssertEqual(NekoSize.small.rawValue, 16)
+        XCTAssertEqual(NekoSize.medium.rawValue, 24)
+        XCTAssertEqual(NekoSize.large.rawValue, 32)
+        XCTAssertEqual(NekoSize.fromSavedValue(16), .small)
+        XCTAssertEqual(NekoSize.fromSavedValue(24), .medium)
+        XCTAssertEqual(NekoSize.fromSavedValue(32), .large)
     }
 
-    func testExactStopAndResumeBoundariesAtEverySizeAndDistance() {
+    func testExactStopAndResumeBoundariesAtEverySize() {
         for size in NekoSize.allCases {
             Settings.shared.currentSize = size
+            let stop = size.rawValue
+            let resume = size.rawValue * 1.5
+            let origin = NSPoint.zero
 
-            for distance in NekoFollowDistance.allCases {
-                Settings.shared.currentFollowDistance = distance
-                let stop = size.rawValue * distance.stopMultiplier
-                let resume = size.rawValue * distance.resumeMultiplier
-                let origin = NSPoint.zero
+            let stopStore = Store(withMouseLoc: point(stop), andNekoLoc: origin)
+            XCTAssertEqual(stopStore.nextTick(point(stop)), origin)
+            assertIdle(stopStore)
 
-                let stopStore = Store(withMouseLoc: point(stop), andNekoLoc: origin)
-                XCTAssertEqual(stopStore.nextTick(point(stop)), origin)
-                assertIdle(stopStore)
-
-                let resumeStore = Store(withMouseLoc: origin, andNekoLoc: origin)
-                XCTAssertEqual(resumeStore.nextTick(point(resume)), origin)
-                assertIdle(resumeStore)
-                XCTAssertEqual(resumeStore.nextTick(point(resume + 0.01)), origin)
-                assertAlert(resumeStore)
-            }
+            let resumeStore = Store(withMouseLoc: origin, andNekoLoc: origin)
+            XCTAssertEqual(resumeStore.nextTick(point(resume)), origin)
+            assertIdle(resumeStore)
+            XCTAssertEqual(resumeStore.nextTick(point(resume + 0.01)), origin)
+            assertAlert(resumeStore)
         }
     }
 
-    func testHysteresisPreservesIdleAndMovingStateAtEverySizeAndDistance() {
+    func testHysteresisPreservesIdleAndMovingStateAtEverySize() {
         for size in NekoSize.allCases {
             Settings.shared.currentSize = size
+            let stop = size.rawValue
+            let resume = size.rawValue * 1.5
+            let band = (stop + resume) / 2
+            let origin = NSPoint.zero
 
-            for distance in NekoFollowDistance.allCases {
-                Settings.shared.currentFollowDistance = distance
-                let stop = size.rawValue * distance.stopMultiplier
-                let resume = size.rawValue * distance.resumeMultiplier
-                let band = (stop + resume) / 2
-                let origin = NSPoint.zero
+            let idleStore = Store(withMouseLoc: origin, andNekoLoc: origin)
+            XCTAssertEqual(idleStore.nextTick(point(band)), origin)
+            assertIdle(idleStore)
 
-                let idleStore = Store(withMouseLoc: origin, andNekoLoc: origin)
-                XCTAssertEqual(idleStore.nextTick(point(band)), origin)
-                assertIdle(idleStore)
-
-                let movingStore = Store(
-                    withMouseLoc: point(resume + size.rawValue),
-                    andNekoLoc: origin
-                )
-                let expectedTravel = band - stop
-                XCTAssertEqual(movingStore.nextTick(point(band)).x, expectedTravel, accuracy: 0.001)
-                assertMovingEast(movingStore)
-                XCTAssertEqual(movingStore.nextTick(point(band)).x, expectedTravel, accuracy: 0.001)
-                assertThinking(movingStore)
-            }
+            let movingStore = Store(
+                withMouseLoc: point(resume + size.rawValue),
+                andNekoLoc: origin
+            )
+            let expectedTravel = band - stop
+            XCTAssertEqual(movingStore.nextTick(point(band)).x, expectedTravel, accuracy: 0.001)
+            assertMovingEast(movingStore)
+            XCTAssertEqual(movingStore.nextTick(point(band)).x, expectedTravel, accuracy: 0.001)
+            assertThinking(movingStore)
         }
     }
 
     func testDirectMovementStopsAtSelectedRadiusWithoutZeroTravelGait() {
         Settings.shared.currentSize = .small
-        Settings.shared.currentFollowDistance = .close
         let target = point(20)
         let store = Store(withMouseLoc: target, andNekoLoc: .zero)
 
@@ -124,7 +85,6 @@ final class NekoCustomizationTests: XCTestCase {
 
     func testDiagonalMovementStopsAtSelectedRadius() {
         Settings.shared.currentSize = .small
-        Settings.shared.currentFollowDistance = .close
         let target = NSPoint(x: 19.2, y: 25.6)
         let store = Store(withMouseLoc: target, andNekoLoc: .zero)
 
@@ -139,38 +99,46 @@ final class NekoCustomizationTests: XCTestCase {
         assertThinking(store)
     }
 
-    func testSmallerRuntimeDistanceStartsFollowingOnNextTick() {
+    func testDiagonalLeftoverDoesNotKeepWalkGait() {
         Settings.shared.currentSize = .small
-        Settings.shared.currentFollowDistance = .far
-        let target = point(40)
-        let store = Store(withMouseLoc: .zero, andNekoLoc: .zero)
+        let mouse = NSPoint(x: 30, y: 40)
+        let radius = Settings.shared.currentSize.rawValue + 1e-9
+        let distance = hypot(mouse.x, mouse.y)
+        let origin = NSPoint(
+            x: mouse.x - mouse.x / distance * radius,
+            y: mouse.y - mouse.y / distance * radius
+        )
+        let store = Store(withMouseLoc: mouse, andNekoLoc: origin)
 
-        XCTAssertEqual(store.nextTick(target), .zero)
-        assertIdle(store)
-
-        Settings.shared.currentFollowDistance = .close
-        XCTAssertEqual(store.nextTick(target), .zero)
-        assertAlert(store)
-        XCTAssertEqual(store.nextTick(target), point(16))
-        assertMovingEast(store)
+        XCTAssertEqual(store.nextTick(mouse), origin)
+        XCTAssertFalse(isMoving(store))
+        assertThinking(store)
     }
 
-    func testLargerRuntimeDistanceStopsFollowingOnNextTick() {
+    func testMouseInsideFarCornerArrivesInsteadOfWalking() {
         Settings.shared.currentSize = .small
-        Settings.shared.currentFollowDistance = .close
-        let target = point(100)
+        let mouse = NSPoint(x: 15, y: 15)
+        let store = Store(withMouseLoc: mouse, andNekoLoc: .zero)
+
+        XCTAssertEqual(store.nextTick(mouse), .zero)
+        XCTAssertFalse(isMoving(store))
+        assertThinking(store)
+    }
+
+    func testSubpixelMouseJitterDoesNotCancelThinking() {
+        Settings.shared.currentSize = .small
+        let target = point(20)
         let store = Store(withMouseLoc: target, andNekoLoc: .zero)
+        _ = store.nextTick(target)
+        _ = store.nextTick(target)
+        assertThinking(store)
 
-        XCTAssertEqual(store.nextTick(target), point(16))
-        assertMovingEast(store)
-
-        Settings.shared.currentFollowDistance = .far
-        XCTAssertEqual(store.nextTick(target), point(16))
+        let jittered = NSPoint(x: target.x + 0.25, y: target.y + 0.25)
+        XCTAssertEqual(store.nextTick(jittered), store.nekoLoc)
         assertThinking(store)
     }
 
     func testStatusMenuUsesPlainSizeNamesAndOmitsDistanceAndRecovery() {
-        Settings.shared.nekoEnabled = true
         let controller = StatusBarController()
         let menu = Mirror(reflecting: controller).children
             .compactMap { $0.label == "statusItem" ? $0.value as? NSStatusItem : nil }
@@ -187,74 +155,30 @@ final class NekoCustomizationTests: XCTestCase {
             "  Normal",
             "  Fast",
             "",
-            "Theme",
-            "  Classic",
-            "  Ginger",
-            "  Blue/Gray",
-            "",
-            "Pause Neko",
             "Quit Neko",
         ])
-    }
-
-    func testThemeMenuSelectorIsIsolatedAndPersistsEveryChoice() {
-        Settings.shared.currentSize = .large
-        Settings.shared.currentSpeed = .fast
-        Settings.shared.currentFollowDistance = .comfortable
-        let controller = StatusBarController()
-
-        for theme in NekoTheme.allCases {
-            let sender = NSMenuItem()
-            sender.representedObject = theme
-            let sent = NSApp.sendAction(
-                NSSelectorFromString("themeSelected:"),
-                to: controller,
-                from: sender
-            )
-
-            XCTAssertTrue(sent)
-            XCTAssertEqual(Settings.shared.currentTheme, theme)
-            XCTAssertEqual(UserDefaults.standard.string(forKey: "nekoTheme"), theme.rawValue)
-            XCTAssertEqual(Settings.shared.currentSize, .large)
-            XCTAssertEqual(Settings.shared.currentSpeed, .fast)
-            XCTAssertEqual(Settings.shared.currentFollowDistance, .comfortable)
-        }
-    }
-
-    func testThemeColorsAreOpaqueAndMatchTheBuiltInPalette() {
-        assertColor(NekoTheme.classic.color, red: 1, green: 1, blue: 1)
-        assertColor(NekoTheme.ginger.color, red: 233 / 255, green: 149 / 255, blue: 69 / 255)
-        assertColor(NekoTheme.blueGray.color, red: 130 / 255, green: 156 / 255, blue: 176 / 255)
     }
 
     private func point(_ x: CGFloat) -> NSPoint {
         NSPoint(x: x, y: 0)
     }
 
-    private func restore(_ value: Any?, forKey key: String) {
-        if let value {
-            UserDefaults.standard.set(value, forKey: key)
-        } else {
-            UserDefaults.standard.removeObject(forKey: key)
+    private func isMoving(_ store: Store) -> Bool {
+        store.anim.contains { state in
+            switch state {
+            case .movingNorthWest1, .movingNorthWest2,
+                 .movingNorth1, .movingNorth2,
+                 .movingNorthEast1, .movingNorthEast2,
+                 .movingEast1, .movingEast2,
+                 .movingSouthEast1, .movingSouthEast2,
+                 .movingSouth1, .movingSouth2,
+                 .movingSouthWest1, .movingSouthWest2,
+                 .movingWest1, .movingWest2:
+                return true
+            default:
+                return false
+            }
         }
-    }
-
-    private func assertColor(
-        _ color: Color,
-        red: CGFloat,
-        green: CGFloat,
-        blue: CGFloat,
-        file: StaticString = #filePath,
-        line: UInt = #line
-    ) {
-        guard let converted = NSColor(color).usingColorSpace(.sRGB) else {
-            XCTFail("Expected sRGB color", file: file, line: line)
-            return
-        }
-        XCTAssertEqual(converted.redComponent, red, accuracy: 0.001, file: file, line: line)
-        XCTAssertEqual(converted.greenComponent, green, accuracy: 0.001, file: file, line: line)
-        XCTAssertEqual(converted.blueComponent, blue, accuracy: 0.001, file: file, line: line)
-        XCTAssertEqual(converted.alphaComponent, 1, accuracy: 0.001, file: file, line: line)
     }
 
     private func assertIdle(_ store: Store, file: StaticString = #filePath, line: UInt = #line) {

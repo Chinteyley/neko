@@ -3,7 +3,6 @@ import Cocoa
 final class StatusBarController {
     private var statusItem: NSStatusItem
     var onSpeedChange: (() -> Void)?
-    var onToggleEnabled: (() -> Void)?
     
     init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -65,32 +64,6 @@ final class StatusBarController {
         
         menu.addItem(NSMenuItem.separator())
 
-        let themeHeader = NSMenuItem(title: "Theme", action: nil, keyEquivalent: "")
-        themeHeader.isEnabled = false
-        menu.addItem(themeHeader)
-
-        for theme in NekoTheme.allCases {
-            let item = NSMenuItem(
-                title: "  \(theme.displayName)",
-                action: #selector(themeSelected(_:)),
-                keyEquivalent: ""
-            )
-            item.target = self
-            item.representedObject = theme
-            item.state = Settings.shared.currentTheme == theme ? .on : .off
-            menu.addItem(item)
-        }
-
-        menu.addItem(NSMenuItem.separator())
-        let enableItem = NSMenuItem(
-            title: Settings.shared.nekoEnabled ? "Pause Neko" : "Resume Neko",
-            action: #selector(toggleEnabled(_:)),
-            keyEquivalent: "p"
-        )
-        enableItem.target = self
-        enableItem.keyEquivalentModifierMask = [.command, .option]
-        menu.addItem(enableItem)
-
         let quitItem = NSMenuItem(
             title: "Quit Neko",
             action: #selector(quitApp),
@@ -126,24 +99,6 @@ final class StatusBarController {
         menu.update()
         Settings.shared.currentSpeed = speed
         onSpeedChange?()
-    }
-
-    @objc private func themeSelected(_ sender: NSMenuItem) {
-        guard let menu = statusItem.menu,
-              let theme = sender.representedObject as? NekoTheme else { return }
-
-        for item in menu.items where item.representedObject is NekoTheme {
-            item.state = item === sender ? .on : .off
-        }
-        menu.update()
-        Settings.shared.currentTheme = theme
-    }
-
-    @objc private func toggleEnabled(_ sender: NSMenuItem) {
-        Settings.shared.nekoEnabled.toggle()
-        sender.title = Settings.shared.nekoEnabled ? "Pause Neko" : "Resume Neko"
-        statusItem.menu?.update()
-        onToggleEnabled?()
     }
 
     @objc private func quitApp() {
