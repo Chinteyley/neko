@@ -3,19 +3,15 @@ import XCTest
 
 final class NekoPlacementTests: XCTestCase {
     private var originalSize: NekoSize!
-    private var originalFollowDistance: NekoFollowDistance!
 
     override func setUp() {
         super.setUp()
         originalSize = Settings.shared.currentSize
-        originalFollowDistance = Settings.shared.currentFollowDistance
         Settings.shared.currentSize = .small
-        Settings.shared.currentFollowDistance = .close
     }
 
     override func tearDown() {
         Settings.shared.currentSize = originalSize
-        Settings.shared.currentFollowDistance = originalFollowDistance
         super.tearDown()
     }
 
@@ -120,6 +116,96 @@ final class NekoPlacementTests: XCTestCase {
         assertIdle(store)
     }
 
+    func testConstrainLeavesOriginInsideAFullyContainingFrame() {
+        let visible = NSRect(x: 0, y: 25, width: 1000, height: 750)
+        let origin = NSPoint(x: 100, y: 100)
+        let result = constrainNekoOrigin(
+            proposed: origin,
+            current: origin,
+            size: NSSize(width: 16, height: 16),
+            mouse: NSPoint(x: 500, y: 400),
+            visibleFrames: [visible]
+        )
+        XCTAssertEqual(result, origin)
+    }
+
+    func testEmptyVisibleFramesDoNotClamp() {
+        let proposed = NSPoint(x: -50, y: -50)
+        let result = constrainNekoOrigin(
+            proposed: proposed,
+            current: .zero,
+            size: NSSize(width: 16, height: 16),
+            mouse: NSPoint(x: -80, y: -80),
+            visibleFrames: []
+        )
+        XCTAssertEqual(result, proposed)
+    }
+
+    func testChaseStopsAtMenuBarAndScratches() {
+        let visible = NSRect(x: 0, y: 25, width: 1000, height: 750)
+        let origin = NSPoint(x: 100, y: 759)
+        let mouse = NSPoint(x: 100, y: 800)
+        let store = Store(withMouseLoc: mouse, andNekoLoc: origin)
+
+        let next = store.nextTick(mouse, visibleFrames: [visible])
+        XCTAssertEqual(next.x, 100)
+        XCTAssertEqual(next.y, 759)
+        assertScratching(store)
+    }
+
+    func testChaseStopsAtDockAndScratches() {
+        let visible = NSRect(x: 0, y: 25, width: 1000, height: 750)
+        let origin = NSPoint(x: 100, y: 25)
+        let mouse = NSPoint(x: 100, y: 0)
+        let store = Store(withMouseLoc: mouse, andNekoLoc: origin)
+
+        let next = store.nextTick(mouse, visibleFrames: [visible])
+        XCTAssertEqual(next, origin)
+        assertScratching(store)
+    }
+
+    func testMouseInsideStopRadiusAtEdgeDoesNotScratch() {
+        let visible = NSRect(x: 0, y: 25, width: 1000, height: 750)
+        let origin = NSPoint(x: 100, y: 759)
+        let mouse = NSPoint(x: 108, y: 759)
+        let store = Store(withMouseLoc: mouse, andNekoLoc: origin)
+
+        let next = store.nextTick(mouse, visibleFrames: [visible])
+        XCTAssertEqual(next, origin)
+        assertIdle(store)
+    }
+
+    func testAdjacentDisplayLetsCatEnterMouseFrame() {
+        let screenA = NSRect(x: 0, y: 0, width: 200, height: 100)
+        let screenB = NSRect(x: 200, y: 0, width: 200, height: 100)
+        let size = NSSize(width: 16, height: 16)
+        let current = NSPoint(x: 184, y: 40)
+        let proposed = NSPoint(x: 200, y: 40)
+        let mouse = NSPoint(x: 260, y: 40)
+
+        let result = constrainNekoOrigin(
+            proposed: proposed,
+            current: current,
+            size: size,
+            mouse: mouse,
+            visibleFrames: [screenA, screenB]
+        )
+        XCTAssertEqual(result, proposed)
+        XCTAssertTrue(screenB.contains(NSRect(origin: result, size: size)))
+    }
+
+    func testGapBetweenFramesBlocksAndScratches() {
+        let screenA = NSRect(x: 0, y: 0, width: 200, height: 100)
+        let screenB = NSRect(x: 250, y: 0, width: 200, height: 100)
+        let origin = NSPoint(x: 184, y: 40)
+        let mouse = NSPoint(x: 300, y: 40)
+        let store = Store(withMouseLoc: mouse, andNekoLoc: origin)
+
+        let next = store.nextTick(mouse, visibleFrames: [screenA, screenB])
+        XCTAssertEqual(next, origin)
+        XCTAssertFalse(NSRect(x: 200, y: 0, width: 50, height: 100).contains(NSRect(origin: next, size: NSSize(width: 16, height: 16))))
+        assertScratching(store)
+    }
 
     private func assertThinking(_ store: Store, file: StaticString = #filePath, line: UInt = #line) {
         guard store.anim.count == 1, case .thinking = store.anim[0] else {
@@ -140,6 +226,15 @@ final class NekoPlacementTests: XCTestCase {
               case .grooming1 = store.anim[0],
               case .grooming2 = store.anim[1] else {
             XCTFail("Expected grooming animation", file: file, line: line)
+            return
+        }
+    }
+
+    private func assertScratching(_ store: Store, file: StaticString = #filePath, line: UInt = #line) {
+        guard store.anim.count == 2,
+              case .scratching1 = store.anim[0],
+              case .scratching2 = store.anim[1] else {
+            XCTFail("Expected scratching animation", file: file, line: line)
             return
         }
     }

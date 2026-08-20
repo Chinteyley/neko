@@ -18,10 +18,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false)
-        window.level = .floating
-        window.collectionBehavior = [.canJoinAllSpaces, .stationary]
+        window.isFloatingPanel = true
         window.isReleasedWhenClosed = false
         window.hidesOnDeactivate = false
+        window.level = .statusBar
+        window.collectionBehavior = [
+            .canJoinAllSpaces,
+            .fullScreenAuxiliary,
+            .stationary
+        ]
+        if #available(macOS 13.0, *) {
+            window.collectionBehavior.insert(.canJoinAllApplications)
+        }
         window.center()
 
         store = Store(withMouseLoc: NSEvent.mouseLocation, andNekoLoc: window.frame.origin)
@@ -35,13 +43,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         startAnimationTimer()
         window.orderFrontRegardless()
         
-        if !Settings.shared.nekoEnabled {
-            pauseNeko()
-        }
-        
         statusBarController = StatusBarController()
         statusBarController?.onSpeedChange = { [weak self] in
-            guard Settings.shared.nekoEnabled else { return }
             self?.restartAnimationTimer()
         }
 
@@ -56,17 +59,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             .dropFirst()
             .sink { [weak self] newSize in
                 self?.updateWindowSize(newSize)
-            }
-            .store(in: &cancellables)
-        
-        Settings.shared.$nekoEnabled
-            .dropFirst()
-            .sink { [weak self] enabled in
-                if enabled {
-                    self?.resumeNeko()
-                } else {
-                    self?.pauseNeko()
-                }
             }
             .store(in: &cancellables)
     }
@@ -110,28 +102,57 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func startAnimationTimer() {
         animationTimer = Timer.scheduledTimer(withTimeInterval: Settings.shared.currentSpeed.rawValue, repeats: true) { [weak self] _ in
             guard let self = self else { return }
-            DispatchQueue.main.async {
-                self.window.setFrameOrigin(self.store.nextTick(NSEvent.mouseLocation))
-            }
+            let frames = NSScreen.screens.map(\.visibleFrame)
+            self.window.setFrameOrigin(self.store.nextTick(NSEvent.mouseLocation, visibleFrames: frames))
         }
     }
-
 
     private func restartAnimationTimer() {
         animationTimer?.invalidate()
         startAnimationTimer()
     }
+}
 
-    func pauseNeko() {
-        animationTimer?.invalidate()
-        animationTimer = nil
-        window.orderOut(nil)
+func clampOrigin(_ origin: NSPoint, size: NSSize, to visibleFrame: NSRect) -> NSPoint {
+    let maxX = max(visibleFrame.minX, visibleFrame.maxX - size.width)
+    let maxY = max(visibleFrame.minY, visibleFrame.maxY - size.height)
+
+    return NSPoint(
+        x: min(max(origin.x, visibleFrame.minX), maxX),
+        y: min(max(origin.y, visibleFrame.minY), maxY)
+    )
+}
+
+func constrainNekoOrigin(
+    proposed: NSPoint,
+    current: NSPoint,
+    size: NSSize,
+    mouse: NSPoint,
+    visibleFrames: [NSRect]
+) -> NSPoint {
+    guard !visibleFrames.isEmpty else { return proposed }
+
+    let proposedFrame = NSRect(origin: proposed, size: size)
+    if visibleFrames.contains(where: { $0.contains(proposedFrame) }) {
+        return proposed
     }
 
-    func resumeNeko() {
-        window.orderFrontRegardless()
-        startAnimationTimer()
+    if let mouseFrame = visibleFrames.first(where: { $0.contains(mouse) && $0.intersects(proposedFrame) }) {
+        return clampOrigin(proposed, size: size, to: mouseFrame)
     }
+
+    let currentFrame = NSRect(origin: current, size: size)
+    if let currentFrameVisible = visibleFrames.first(where: { $0.intersects(currentFrame) }) {
+        return clampOrigin(proposed, size: size, to: currentFrameVisible)
+    }
+
+    let currentCenter = NSPoint(x: current.x + size.width / 2, y: current.y + size.height / 2)
+    guard let nearest = visibleFrames.min(by: { a, b in
+        hypot(a.midX - currentCenter.x, a.midY - currentCenter.y) < hypot(b.midX - currentCenter.x, b.midY - currentCenter.y)
+    }) else {
+        return proposed
+    }
+    return clampOrigin(proposed, size: size, to: nearest)
 }
 
 func clampedNekoOrigin(mouseLocation: NSPoint, windowSize: NSSize, visibleFrame: NSRect) -> NSPoint {
@@ -139,13 +160,7 @@ func clampedNekoOrigin(mouseLocation: NSPoint, windowSize: NSSize, visibleFrame:
         x: mouseLocation.x - windowSize.width / 2,
         y: mouseLocation.y - windowSize.height / 2
     )
-    let maxX = max(visibleFrame.minX, visibleFrame.maxX - windowSize.width)
-    let maxY = max(visibleFrame.minY, visibleFrame.maxY - windowSize.height)
-
-    return NSPoint(
-        x: min(max(centered.x, visibleFrame.minX), maxX),
-        y: min(max(centered.y, visibleFrame.minY), maxY)
-    )
+    return clampOrigin(centered, size: windowSize, to: visibleFrame)
 }
 
 func isNekoFrameVisible(_ frame: NSRect, in visibleFrames: [NSRect]) -> Bool {

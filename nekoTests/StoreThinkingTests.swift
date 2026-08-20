@@ -4,23 +4,19 @@ import XCTest
 final class StoreThinkingTests: XCTestCase {
     private var originalSize: NekoSize!
     private var originalSpeed: NekoSpeed!
-    private var originalFollowDistance: NekoFollowDistance!
     private var now: Date!
 
     override func setUp() {
         super.setUp()
         originalSize = Settings.shared.currentSize
         originalSpeed = Settings.shared.currentSpeed
-        originalFollowDistance = Settings.shared.currentFollowDistance
         Settings.shared.currentSize = .small
-        Settings.shared.currentFollowDistance = .close
         now = Date(timeIntervalSinceReferenceDate: 0)
     }
 
     override func tearDown() {
         Settings.shared.currentSize = originalSize
         Settings.shared.currentSpeed = originalSpeed
-        Settings.shared.currentFollowDistance = originalFollowDistance
         super.tearDown()
     }
 
