@@ -15,8 +15,8 @@ A macOS desktop pet application - a tiny kitten sprite that follows the mouse cu
 - `ContentView.swift` - SwiftUI view wrapping NekoAnimation
 - `NekoAnimation.swift` - Animation frame selector
 - `Neko.swift` - Sprite rendering component
-- `Settings.swift` - User preferences (size, speed)
-- `StatusBarController.swift` - Menu bar UI for settings
+- `Settings.swift` - User preferences (size, speed, hidden) and login-item registration
+- `StatusBarController.swift` - Menu bar UI for settings, template status icon
 
 ### Window Configuration
 
@@ -28,8 +28,10 @@ A macOS desktop pet application - a tiny kitten sprite that follows the mouse cu
 ### Lifecycle Management
 
 - Animation timer managed by `AppDelegate`
-- `restartAnimationTimer()` - Used when speed setting changes
+- `startAnimationTimer()` - Invalidates and rebuilds the timer; used on launch, speed change, and hide/show
 - Timer interval determined by `Settings.shared.currentSpeed.rawValue`
+- Timer is registered in `.common` and `.eventTracking` so the kitten keeps moving while a menu is open
+- No timer runs while `Settings.shared.isHidden` is true
 <!-- END AUTO-MANAGED -->
 
 <!-- AUTO-MANAGED: conventions -->
@@ -51,7 +53,8 @@ A macOS desktop pet application - a tiny kitten sprite that follows the mouse cu
 
 - Singleton `Settings.shared` with `@Published` properties
 - UserDefaults persistence for size and speed
-- Settings keys: `nekoSize`, `nekoSpeed`
+- Settings keys: `nekoSize`, `nekoSpeed`, `nekoHidden`
+- Launch at login is system state, not UserDefaults: `LoginItem` wraps `SMAppService.mainApp` (macOS 13+)
 - Combine publishers for reactive menu updates
 
 ### Window Setup Order
@@ -83,11 +86,12 @@ A macOS desktop pet application - a tiny kitten sprite that follows the mouse cu
 
 - `NSHostingView` wraps SwiftUI `ContentView`
 - Bindings connect Store state to view updates
-- Timer updates run on the main run loop
+- Timer updates run on the main run loop in common and event-tracking modes
 
 ### Settings Observation
 
 - `Settings.shared.$currentSize` drives window size
-- Menu checkmarks update on selection
+- `Settings.shared.$isHidden` orders the panel in or out
+- Menu checkmarks update on selection, and re-sync in `menuWillOpen`
 - `onSpeedChange` callback restarts the animation timer
 <!-- END AUTO-MANAGED -->
