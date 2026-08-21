@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import ServiceManagement
 
 enum NekoSize: CGFloat, CaseIterable {
     case small = 16
@@ -72,11 +73,54 @@ enum NekoSpeed: Double, CaseIterable {
     }
 }
 
+enum LoginItem {
+    static var isSupported: Bool {
+        if #available(macOS 13.0, *) {
+            return true
+        }
+        return false
+    }
+
+    static var isEnabled: Bool {
+        guard #available(macOS 13.0, *) else { return false }
+        return SMAppService.mainApp.status == .enabled
+    }
+
+    // macOS can accept the registration but park it behind user approval.
+    static var requiresApproval: Bool {
+        guard #available(macOS 13.0, *) else { return false }
+        return SMAppService.mainApp.status == .requiresApproval
+    }
+
+    static func openSettings() {
+        guard #available(macOS 13.0, *) else { return }
+        SMAppService.openSystemSettingsLoginItems()
+    }
+
+    @discardableResult
+    static func setEnabled(_ enabled: Bool) -> Bool {
+        guard #available(macOS 13.0, *) else { return false }
+        guard isEnabled != enabled else { return true }
+
+        do {
+            if enabled {
+                try SMAppService.mainApp.register()
+            } else {
+                try SMAppService.mainApp.unregister()
+            }
+            return true
+        } catch {
+            return false
+        }
+    }
+}
+
 final class Settings: ObservableObject {
     static let shared = Settings()
     
     private let sizeKey = "nekoSize"
     private let speedKey = "nekoSpeed"
+    private let hiddenKey = "nekoHidden"
     
     @Published var currentSize: NekoSize {
         didSet { UserDefaults.standard.set(currentSize.rawValue, forKey: sizeKey) }
@@ -84,6 +128,10 @@ final class Settings: ObservableObject {
     
     @Published var currentSpeed: NekoSpeed {
         didSet { UserDefaults.standard.set(currentSpeed.rawValue, forKey: speedKey) }
+    }
+
+    @Published var isHidden: Bool {
+        didSet { UserDefaults.standard.set(isHidden, forKey: hiddenKey) }
     }
 
     private init() {
@@ -101,8 +149,11 @@ final class Settings: ObservableObject {
             initialSpeed = .normal
         }
 
+        let initialHidden = UserDefaults.standard.bool(forKey: hiddenKey)
+
         self.currentSize = initialSize
         self.currentSpeed = initialSpeed
+        self.isHidden = initialHidden
 
         UserDefaults.standard.set(initialSize.rawValue, forKey: sizeKey)
         UserDefaults.standard.set(initialSpeed.rawValue, forKey: speedKey)

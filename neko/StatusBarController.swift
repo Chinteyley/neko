@@ -1,28 +1,31 @@
 import Cocoa
 
-final class StatusBarController {
+final class StatusBarController: NSObject, NSMenuDelegate {
     private var statusItem: NSStatusItem
+    private var hideItem: NSMenuItem?
+    private var loginItem: NSMenuItem?
     var onSpeedChange: (() -> Void)?
     
-    init() {
+    override init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        super.init()
         
         if let button = statusItem.button {
-            // Safely unwrap applicationIconImage and ensure we have a non-optional NSImage
-            let baseIcon = NSApplication.shared.applicationIconImage ?? NSImage(size: NSSize(width: 18, height: 18))
-            let icon = baseIcon.copy() as? NSImage ?? baseIcon
-            let iconSize = NSSize(
-                width: NSStatusBar.system.thickness,
-                height: NSStatusBar.system.thickness
-            )
-            icon.size = iconSize
-            icon.isTemplate = false
-            button.image = icon
+            button.image = Self.menuBarIcon()
             button.imagePosition = .imageOnly
             button.title = ""
         }
         
         setupMenu()
+    }
+
+    // Sized to the sprite's own pixel grid so the art never lands on a fractional scale.
+    private static func menuBarIcon() -> NSImage? {
+        guard let asset = NSImage(named: "MenuBarIcon"),
+              let icon = asset.copy() as? NSImage else { return nil }
+        icon.size = NSSize(width: 16, height: 16)
+        icon.isTemplate = true
+        return icon
     }
     
     private func setupMenu() {
@@ -64,6 +67,30 @@ final class StatusBarController {
         
         menu.addItem(NSMenuItem.separator())
 
+        let hideItem = NSMenuItem(
+            title: "Hide Neko",
+            action: #selector(toggleHidden),
+            keyEquivalent: ""
+        )
+        hideItem.target = self
+        hideItem.state = Settings.shared.isHidden ? .on : .off
+        menu.addItem(hideItem)
+        self.hideItem = hideItem
+
+        if LoginItem.isSupported {
+            let loginItem = NSMenuItem(
+                title: "Launch at Login",
+                action: #selector(toggleLaunchAtLogin),
+                keyEquivalent: ""
+            )
+            loginItem.target = self
+            loginItem.state = LoginItem.isEnabled ? .on : .off
+            menu.addItem(loginItem)
+            self.loginItem = loginItem
+        }
+
+        menu.addItem(NSMenuItem.separator())
+
         let quitItem = NSMenuItem(
             title: "Quit Neko",
             action: #selector(quitApp),
@@ -72,7 +99,14 @@ final class StatusBarController {
         quitItem.target = self
         menu.addItem(quitItem)
         
+        menu.delegate = self
         statusItem.menu = menu
+    }
+
+    // Login state lives in System Settings, so re-read it every time the menu opens.
+    func menuWillOpen(_ menu: NSMenu) {
+        hideItem?.state = Settings.shared.isHidden ? .on : .off
+        loginItem?.state = LoginItem.isEnabled ? .on : .off
     }
     
     @objc private func sizeSelected(_ sender: NSMenuItem) {
@@ -99,6 +133,20 @@ final class StatusBarController {
         menu.update()
         Settings.shared.currentSpeed = speed
         onSpeedChange?()
+    }
+
+    @objc private func toggleHidden(_ sender: NSMenuItem) {
+        Settings.shared.isHidden.toggle()
+        sender.state = Settings.shared.isHidden ? .on : .off
+    }
+
+    @objc private func toggleLaunchAtLogin(_ sender: NSMenuItem) {
+        LoginItem.setEnabled(!LoginItem.isEnabled)
+        sender.state = LoginItem.isEnabled ? .on : .off
+
+        if LoginItem.requiresApproval {
+            LoginItem.openSettings()
+        }
     }
 
     @objc private func quitApp() {
