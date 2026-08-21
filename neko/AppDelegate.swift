@@ -41,11 +41,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.contentView = hostingView
 
         startAnimationTimer()
-        window.orderFrontRegardless()
+        if !Settings.shared.isHidden {
+            window.orderFrontRegardless()
+        }
         
         statusBarController = StatusBarController()
         statusBarController?.onSpeedChange = { [weak self] in
-            self?.restartAnimationTimer()
+            self?.startAnimationTimer()
         }
 
         NotificationCenter.default.addObserver(
@@ -59,6 +61,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             .dropFirst()
             .sink { [weak self] newSize in
                 self?.updateWindowSize(newSize)
+            }
+            .store(in: &cancellables)
+
+        Settings.shared.$isHidden
+            .dropFirst()
+            .sink { [weak self] hidden in
+                self?.applyHidden(hidden)
             }
             .store(in: &cancellables)
     }
@@ -91,6 +100,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.setFrameOrigin(origin)
     }
 
+    private func applyHidden(_ hidden: Bool) {
+        if hidden {
+            window.orderOut(nil)
+        } else {
+            bringNekoHere()
+            window.orderFrontRegardless()
+        }
+        startAnimationTimer()
+    }
+
     private func updateWindowSize(_ size: NekoSize) {
         let newSize = size.rawValue
         window.setContentSize(NSSize(width: newSize, height: newSize))
@@ -100,17 +119,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func startAnimationTimer() {
-        animationTimer = Timer.scheduledTimer(withTimeInterval: Settings.shared.currentSpeed.rawValue, repeats: true) { [weak self] _ in
+        animationTimer?.invalidate()
+        animationTimer = nil
+        guard !Settings.shared.isHidden else { return }
+
+        animationTimer = makeNekoTimer(interval: Settings.shared.currentSpeed.rawValue) { [weak self] in
             guard let self = self else { return }
             let frames = NSScreen.screens.map(\.visibleFrame)
             self.window.setFrameOrigin(self.store.nextTick(NSEvent.mouseLocation, visibleFrames: frames))
         }
     }
+}
 
-    private func restartAnimationTimer() {
-        animationTimer?.invalidate()
-        startAnimationTimer()
-    }
+// Menu tracking runs the main loop in .eventTracking, which a default-mode timer
+// never reaches; the neko would freeze for as long as the menu stayed open.
+func makeNekoTimer(interval: TimeInterval, tick: @escaping () -> Void) -> Timer {
+    let timer = Timer(timeInterval: interval, repeats: true) { _ in tick() }
+    RunLoop.main.add(timer, forMode: .common)
+    RunLoop.main.add(timer, forMode: .eventTracking)
+    return timer
 }
 
 func clampOrigin(_ origin: NSPoint, size: NSSize, to visibleFrame: NSRect) -> NSPoint {

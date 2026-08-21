@@ -30,6 +30,8 @@ neko/
 | Add menu bar options | `StatusBarController.swift` |
 | Modify size presets | `Settings.swift` (NekoSize enum) |
 | Window behavior | `AppDelegate.swift` (window.level, collectionBehavior) |
+| Hide / show the kitten | `AppDelegate.swift` (applyHidden), `Settings.swift` (isHidden) |
+| Launch at login | `Settings.swift` (LoginItem) |
 | Screen-edge clamp | `AppDelegate.swift` (constrainNekoOrigin) |
 
 ## CONVENTIONS
@@ -54,6 +56,7 @@ neko/
 - Movement speed proportional to size (bigger = faster)
 - Window at `.statusBar` with `.fullScreenAuxiliary` (and `.canJoinAllApplications` on macOS 13+) for overlay including fullscreen apps. Set `isFloatingPanel` before `level`; `isFloatingPanel = true` resets the level to `.floating`.
 - Walk frames only when the origin actually moved; edge blocks scratch, true arrival thinks/sits
+- Animation timer is registered in `.common` **and** `.eventTracking`; `.common` alone stops during menu tracking
 
 ## COMMANDS
 
@@ -79,4 +82,6 @@ open build/Debug/neko.app
 - Category: `public.app-category.utilities` (not games, avoids Game Mode)
 - Sprite sheet: 6 cols × 5 rows, base 16×16px
 - 3 size presets: 16/24/32px
-- Settings keys: `nekoSize`, `nekoSpeed`
+- Settings keys: `nekoSize`, `nekoSpeed`, `nekoHidden`
+- Launch at login uses `SMAppService.mainApp` (macOS 13+), gated behind `LoginItem.isSupported`
+- Menu bar icon is a template imageset (`MenuBarIcon`) drawn at 16pt from the sprite's outline

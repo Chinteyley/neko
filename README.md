@@ -14,7 +14,8 @@ A tiny menu bar kitten that follows your mouse on macOS.
 - Claws the screen edge instead of walking under the menu bar or dock.
 - Screen-aware recovery when displays change.
 - Always-on-top window, including fullscreen apps.
-- Menu bar app only (no Dock icon).
+- Menu bar app only (no Dock icon), with a template icon that follows the menu bar appearance.
+- Optional launch at login, and a hide toggle that parks the kitten without quitting.
 - Three size presets, scaled with crisp pixels.
 
 ## Install
@@ -38,6 +39,8 @@ open build/Debug/neko.app
 - Click the menu bar icon to open controls.
 - Size: Small, Medium, Large.
 - Speed: Slow, Normal, Fast.
+- Hide Neko: keeps the app running with the kitten off screen.
+- Launch at Login: starts neko when you log in (macOS 13 and later).
 - Quit: `Cmd+Q`.
 - Settings persist between launches.
 

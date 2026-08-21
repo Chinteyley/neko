@@ -5,18 +5,42 @@ import XCTest
 final class NekoCustomizationTests: XCTestCase {
     private var originalSize: NekoSize!
     private var originalSpeed: NekoSpeed!
+    private var originalHidden: Bool!
 
     override func setUp() {
         super.setUp()
         originalSize = Settings.shared.currentSize
         originalSpeed = Settings.shared.currentSpeed
+        originalHidden = Settings.shared.isHidden
         Settings.shared.currentSize = .small
     }
 
     override func tearDown() {
         Settings.shared.currentSize = originalSize
         Settings.shared.currentSpeed = originalSpeed
+        Settings.shared.isHidden = originalHidden
         super.tearDown()
+    }
+
+    func testHiddenSettingPersists() {
+        Settings.shared.isHidden = true
+        XCTAssertTrue(UserDefaults.standard.bool(forKey: "nekoHidden"))
+
+        Settings.shared.isHidden = false
+        XCTAssertFalse(UserDefaults.standard.bool(forKey: "nekoHidden"))
+    }
+
+    func testAnimationTimerRunsWhileAMenuTracksEvents() {
+        var ticks = 0
+        let timer = makeNekoTimer(interval: 0.01) { ticks += 1 }
+        defer { timer.invalidate() }
+
+        let deadline = Date().addingTimeInterval(0.5)
+        while Date() < deadline, ticks == 0 {
+            _ = RunLoop.current.run(mode: .eventTracking, before: deadline)
+        }
+
+        XCTAssertGreaterThan(ticks, 0)
     }
 
     func testSizePresets() {
@@ -144,7 +168,7 @@ final class NekoCustomizationTests: XCTestCase {
             .compactMap { $0.label == "statusItem" ? $0.value as? NSStatusItem : nil }
             .first?.menu
 
-        XCTAssertEqual(menu?.items.map(\.title), [
+        var expected = [
             "Size",
             "  Small",
             "  Medium",
@@ -155,8 +179,14 @@ final class NekoCustomizationTests: XCTestCase {
             "  Normal",
             "  Fast",
             "",
-            "Quit Neko",
-        ])
+            "Hide Neko",
+        ]
+        if LoginItem.isSupported {
+            expected.append("Launch at Login")
+        }
+        expected.append(contentsOf: ["", "Quit Neko"])
+
+        XCTAssertEqual(menu?.items.map(\.title), expected)
     }
 
     private func point(_ x: CGFloat) -> NSPoint {
