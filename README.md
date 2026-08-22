@@ -1,30 +1,36 @@
-# neko.app
+# neko
 
 A tiny menu bar kitten that follows your mouse on macOS.
 
 <p align="center">
-  <img alt="Demo" src="media/demo.gif">
+  <img src="media/demo.webp" width="720" alt="A pixel kitten follows the cursor, then sits and falls asleep.">
 </p>
 
-## Features
-
-- Animated eight-direction pixel sprite that follows the cursor along a direct path.
-- Crisp, step-based movement with immediate direction changes between movement gaits.
-- Brief thinking animation when the kitten arrives.
-- Claws the screen edge instead of walking under the menu bar or dock.
-- Screen-aware recovery when displays change.
-- Always-on-top window, including fullscreen apps.
-- Menu bar app only (no Dock icon), with a template icon that follows the menu bar appearance.
-- Optional launch at login, and a hide toggle that parks the kitten without quitting.
-- Three size presets, scaled with crisp pixels.
+It floats above every window, including fullscreen apps. There is no Dock icon. Click the cat in the menu bar to change size and speed, hide it, or start it when you log in.
 
 ## Install
 
-Download the macOS disk image from the [latest release](https://github.com/Chinteyley/neko/releases/latest), open it, and drag `neko` onto the Applications folder. The disk image is a universal build for Apple silicon and Intel Macs. Use the matching `.sha256` file to verify the download with `shasum -a 256 -c`.
+macOS 12 or later. Apple silicon and Intel.
 
-Releases are signed with Developer ID and notarized by Apple.
+1. Download the disk image from the [latest release](https://github.com/Chinteyley/neko/releases/latest).
+2. Open it.
+3. Drag `neko` onto the Applications folder.
 
-Or build from source:
+Releases are signed with Developer ID and notarized by Apple. To check the file, run `shasum -a 256 -c` on the `.sha256` next to the disk image.
+
+## Use
+
+Click the menu bar icon.
+
+- **Size.** Small, Medium, Large.
+- **Speed.** Slow, Normal, Fast.
+- **Hide Neko.** Parks the kitten and stops the timer. The app stays running.
+- **Launch at Login.** macOS 13 and later.
+- **Quit Neko.** `Cmd+Q`.
+
+Settings persist between launches.
+
+## Build
 
 ```bash
 xcodebuild -project neko.xcodeproj -scheme neko build \
@@ -34,46 +40,24 @@ xcodebuild -project neko.xcodeproj -scheme neko build \
 open build/Debug/neko.app
 ```
 
-## Usage
+An unsigned debug build is fine on your own Mac. It cannot register as a login item.
 
-- Click the menu bar icon to open controls.
-- Size: Small, Medium, Large.
-- Speed: Slow, Normal, Fast.
-- Hide Neko: keeps the app running with the kitten off screen.
-- Launch at Login: starts neko when you log in (macOS 13 and later).
-- Quit: `Cmd+Q`.
-- Settings persist between launches.
+## Contribute
 
----
+Issues and pull requests are welcome. Keep the change small, say what you checked, and run:
 
-## Development
+```bash
+xcodebuild -project neko.xcodeproj -scheme neko \
+  -destination 'platform=macOS' \
+  -derivedDataPath build/DerivedData \
+  test \
+  CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+```
 
-- App entry and window behavior: `neko/AppDelegate.swift`.
-- Menu bar UI and actions: `neko/StatusBarController.swift`.
-- Movement and direction state machine: `neko/Store.swift`.
-- Sprite states and frame selection: `neko/Neko.swift` and `neko/NekoAnimation.swift`.
-- Settings and persistence: `neko/Settings.swift`.
-- SwiftUI wrapper: `neko/ContentView.swift`.
-- Sprite sheet assets: `neko/Assets.xcassets/Neko.imageset`.
+This project is a fork of [Bogdanp/neko](https://github.com/Bogdanp/neko). Agent notes live in [`AGENTS.md`](AGENTS.md).
 
-Conventions:
+## License
 
-- Programmatic UI only, no storyboards.
-- Default to value passing, avoid `@Binding` for animation state.
-- Use `[weak self]` in timer callbacks.
-- Keep code comment-free unless intent is non-obvious.
+[MIT](LICENSE). Copyright Bogdan Popa and Chinteyley.
 
-## Project Notes
-
-- Swift + SwiftUI, no storyboards.
-- Timer-driven movement updates (default 0.16s).
-- Position advances toward the cursor by one size-scaled step per update.
-- Sprite gait uses the nearest of eight directions while preserving straight movement paths.
-- Sprite sheet: 5 columns x 6 rows, base 16x16 px.
-
-## Credits
-
-- Maintained by Chinteyley.
-- Original sprites are taken from [skiftOS].
-
-[skiftOS]: https://github.com/skiftOS/skift
+Original sprites come from [skiftOS](https://github.com/skiftOS/skift).
