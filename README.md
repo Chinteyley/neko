@@ -20,7 +20,7 @@ A tiny menu bar kitten that follows your mouse on macOS.
 
 ## Install
 
-Download the macOS ZIP from the [latest release](https://github.com/Chinteyley/neko/releases/latest), unzip it, and move `neko.app` to your Applications folder. The ZIP includes a universal build for Apple silicon and Intel Macs. Use the matching `.sha256` file to verify the download with `shasum -a 256 -c`.
+Download the macOS disk image from the [latest release](https://github.com/Chinteyley/neko/releases/latest), open it, and drag `neko` onto the Applications folder. The disk image is a universal build for Apple silicon and Intel Macs. Use the matching `.sha256` file to verify the download with `shasum -a 256 -c`.
 
 Releases are signed with Developer ID and notarized by Apple.
 

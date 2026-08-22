@@ -74,6 +74,9 @@ xcodebuild -project neko.xcodeproj -scheme neko \
 
 # Run
 open build/Debug/neko.app
+
+# Package a drag-to-Applications disk image
+scripts/package-dmg.sh path/to/neko.app neko.dmg
 ```
 
 ## NOTES
