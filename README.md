@@ -54,10 +54,12 @@ xcodebuild -project neko.xcodeproj -scheme neko \
   CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
 ```
 
-This project is a fork of [Bogdanp/neko](https://github.com/Bogdanp/neko). Agent notes live in [`AGENTS.md`](AGENTS.md).
+## Credits
+
+This started as [Bogdan Popa's neko](https://github.com/Bogdanp/neko). Thank you, Bogdan.
+
+Sprites are from [skiftOS](https://github.com/skiftOS/skift).
 
 ## License
 
 [MIT](LICENSE). Copyright Bogdan Popa and Chinteyley.
-
-Original sprites come from [skiftOS](https://github.com/skiftOS/skift).
