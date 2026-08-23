@@ -16,6 +16,7 @@ Humans read `README.md`. This file is the map for code changes.
 | Screen-edge clamp | `constrainNekoOrigin` in `AppDelegate.swift` |
 | Launch at login | `LoginItem` in `Settings.swift` |
 | Hide / show | `AppDelegate.applyHidden`, `Settings.isHidden` |
+| Held sign line | `Settings.swift` (`NekoSign`, `NekoSignMetrics`) + `ContentView.swift` |
 | Sprite sheet | `neko/Assets.xcassets/Neko.imageset/` |
 | Menu bar icon | `neko/Assets.xcassets/MenuBarIcon.imageset/` |
 | Drag-to-Applications image | `scripts/package-dmg.sh`, `.github/workflows/release.yml` |
@@ -27,17 +28,17 @@ Humans read `README.md`. This file is the map for code changes.
 neko/
 ├── main.swift                 # NSApplication + AppDelegate (not @main)
 ├── AppDelegate.swift          # Panel, timer, hide, screen recovery
-├── Settings.swift             # Size, speed, hidden, LoginItem
+├── Settings.swift             # Size, speed, hidden, sign, LoginItem
 ├── StatusBarController.swift  # Menu
 ├── Store.swift                # Direction + animation state machine
 ├── Neko.swift                 # Sprite view, NekoState, sheet offsets
 ├── NekoAnimation.swift        # Frame picker: anim[tick % count]
-├── ContentView.swift          # ObservedObject wrapper
+├── ContentView.swift          # ObservedObject wrapper + held sign
 ├── Info.plist
 └── Assets.xcassets/
 nekoTests/
-├── NekoCustomizationTests.swift  # Menu, size/speed, stop radius, hide
-├── NekoPlacementTests.swift      # Clamp, scratch, multi-display
+├── NekoCustomizationTests.swift  # Menu, size/speed, sign, stop radius, hide
+├── NekoPlacementTests.swift      # Clamp, scratch, multi-display, sign footprint
 └── StoreThinkingTests.swift      # 0.6s think, idle progression
 scripts/package-dmg.sh
 .github/workflows/ci.yml
@@ -61,7 +62,7 @@ README uses the WebP so it autoplays. Recut from the MP4. A GIF of this wallpape
 5. True arrival thinks for 0.6s of wall time if the mouse is still, otherwise sits. Thinking is a deadline, not a tick count, so speed changes do not stretch it.
 6. Idle then goes grooming, idle, yawn, sleep based on `ticksSinceLastMove`.
 
-`constrainNekoOrigin` keeps the whole sprite inside a visible frame. Empty `visibleFrames` leaves the proposed origin alone.
+`constrainNekoOrigin` keeps the whole panel (sprite + sign) inside a visible frame. Empty `visibleFrames` leaves the proposed origin alone. AppDelegate passes `window.frame.size` so the bubble stays on-screen.
 
 Unhiding and display-change recovery call `bringNekoHere()`, which recenters on the mouse's screen. Do not show the kitten on a display that is gone.
 
@@ -72,8 +73,8 @@ Window setup order matters:
 1. Borderless nonactivating `NSPanel`
 2. `isFloatingPanel = true`, then `level = .statusBar`. Setting the floating-panel flag later resets the level to `.floating`.
 3. Collection behavior: `canJoinAllSpaces`, `fullScreenAuxiliary`, `stationary`, and `canJoinAllApplications` on macOS 13+
-4. `backgroundColor` with alpha 0, then `ignoresMouseEvents = true`
-5. Host `ContentView` and start the timer
+4. `isOpaque = false`, `backgroundColor` with alpha 0, then `ignoresMouseEvents = true` except when the cursor is over the sprite or sign
+5. Host `ContentView` and start the timer. The panel is sprite-plus-sign, not sprite-only.
 
 `makeNekoTimer` registers in `.common` and `.eventTracking`. `.common` alone does not run during menu tracking. `testAnimationTimerRunsWhileAMenuTracksEvents` fails if you drop `.eventTracking`.
 
@@ -86,6 +87,7 @@ No timer runs while `isHidden` is true.
 | `nekoSize` | 16 / 24 / 32 (Small / Medium / Large) |
 | `nekoSpeed` | 0.24 / 0.16 / 0.10 s (Slow / Normal / Fast) |
 | `nekoHidden` | bool |
+| `nekoSign` | 0 / 1 / 2 (`still left-aligned` / `yelled at: 4` / `$47`) |
 
 Speed is the timer interval, not pixels per tick. Bigger size already walks farther per tick.
 
@@ -139,6 +141,6 @@ Local packaging does not sign. CI signs with the Developer ID secrets.
 
 Run the suite above after movement, clamp, menu, timer, or settings changes.
 
-- `NekoCustomizationTests` covers the menu shape, persist, stop/resume hysteresis, and the event-tracking timer.
-- `NekoPlacementTests` covers visible-frame clamp, scratch vs arrive at the edge, and multi-display gaps.
+- `NekoCustomizationTests` covers the menu shape, persist, stop/resume hysteresis, the event-tracking timer, and sign cycling.
+- `NekoPlacementTests` covers visible-frame clamp, scratch vs arrive at the edge, multi-display gaps, and the wider sign footprint.
 - `StoreThinkingTests` covers the 0.6s think window across speed changes.

@@ -6,12 +6,14 @@ final class NekoCustomizationTests: XCTestCase {
     private var originalSize: NekoSize!
     private var originalSpeed: NekoSpeed!
     private var originalHidden: Bool!
+    private var originalSign: NekoSign!
 
     override func setUp() {
         super.setUp()
         originalSize = Settings.shared.currentSize
         originalSpeed = Settings.shared.currentSpeed
         originalHidden = Settings.shared.isHidden
+        originalSign = Settings.shared.currentSign
         Settings.shared.currentSize = .small
     }
 
@@ -19,6 +21,7 @@ final class NekoCustomizationTests: XCTestCase {
         Settings.shared.currentSize = originalSize
         Settings.shared.currentSpeed = originalSpeed
         Settings.shared.isHidden = originalHidden
+        Settings.shared.currentSign = originalSign
         super.tearDown()
     }
 
@@ -179,6 +182,8 @@ final class NekoCustomizationTests: XCTestCase {
             "  Normal",
             "  Fast",
             "",
+            "Next Sign",
+            "",
             "Hide Neko",
         ]
         if LoginItem.isSupported {
@@ -187,6 +192,75 @@ final class NekoCustomizationTests: XCTestCase {
         expected.append(contentsOf: ["", "Quit Neko"])
 
         XCTAssertEqual(menu?.items.map(\.title), expected)
+    }
+
+    func testSignPresetsCycleAndPersist() {
+        XCTAssertEqual(NekoSign.allCases, [.stillLeftAligned, .yelledAt, .fortySeven])
+        XCTAssertEqual(NekoSign.stillLeftAligned.text, "still left-aligned")
+        XCTAssertEqual(NekoSign.yelledAt.text, "yelled at: 4")
+        XCTAssertEqual(NekoSign.fortySeven.text, "$47")
+        XCTAssertEqual(NekoSign.fromStoredValue(0), .stillLeftAligned)
+        XCTAssertEqual(NekoSign.fromStoredValue(1), .yelledAt)
+        XCTAssertEqual(NekoSign.fromStoredValue(2), .fortySeven)
+        XCTAssertNil(NekoSign.fromStoredValue(99))
+
+        Settings.shared.currentSign = .stillLeftAligned
+        XCTAssertEqual(UserDefaults.standard.integer(forKey: "nekoSign"), 0)
+
+        Settings.shared.cycleSign()
+        XCTAssertEqual(Settings.shared.currentSign, .yelledAt)
+        XCTAssertEqual(UserDefaults.standard.integer(forKey: "nekoSign"), 1)
+
+        Settings.shared.cycleSign()
+        XCTAssertEqual(Settings.shared.currentSign, .fortySeven)
+        XCTAssertEqual(UserDefaults.standard.integer(forKey: "nekoSign"), 2)
+
+        Settings.shared.cycleSign()
+        XCTAssertEqual(Settings.shared.currentSign, .stillLeftAligned)
+        XCTAssertEqual(UserDefaults.standard.integer(forKey: "nekoSign"), 0)
+    }
+
+    func testNextSignMenuItemCyclesThePersistedLine() {
+        Settings.shared.currentSign = .stillLeftAligned
+        let controller = StatusBarController()
+        let menu = Mirror(reflecting: controller).children
+            .compactMap { $0.label == "statusItem" ? $0.value as? NSStatusItem : nil }
+            .first?.menu
+        let item = menu?.items.first { $0.title == "Next Sign" }
+
+        guard let item, let action = item.action else {
+            XCTFail("Expected Next Sign menu item")
+            return
+        }
+        XCTAssertEqual(item.keyEquivalent, "s")
+        controller.perform(action, with: item)
+        XCTAssertEqual(Settings.shared.currentSign, .yelledAt)
+        XCTAssertEqual(UserDefaults.standard.integer(forKey: "nekoSign"), 1)
+    }
+
+    func testSignHitTargetIncludesSpriteAndBubbleButNotEmptyPanel() {
+        let size = NekoSize.small
+        let frame = CGRect(origin: .zero, size: NekoSignMetrics.windowSize(for: size))
+
+        XCTAssertTrue(NekoSignMetrics.contains(CGPoint(x: 8, y: 8), windowFrame: frame, size: size))
+        XCTAssertTrue(NekoSignMetrics.contains(
+            CGPoint(x: 20, y: size.rawValue + NekoSignMetrics.stickHeight + 2),
+            windowFrame: frame,
+            size: size
+        ))
+        XCTAssertFalse(NekoSignMetrics.contains(
+            CGPoint(x: size.rawValue + 10, y: 4),
+            windowFrame: frame,
+            size: size
+        ))
+        XCTAssertFalse(NekoSignMetrics.contains(
+            CGPoint(x: 40, y: size.rawValue + 1),
+            windowFrame: frame,
+            size: size
+        ))
+        XCTAssertFalse(NekoSignMetrics.contains(CGPoint(x: -1, y: 8), windowFrame: frame, size: size))
+        XCTAssertGreaterThan(frame.width, size.rawValue)
+        XCTAssertGreaterThan(frame.height, size.rawValue)
     }
 
     private func point(_ x: CGFloat) -> NSPoint {

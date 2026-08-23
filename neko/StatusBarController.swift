@@ -67,6 +67,16 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         
         menu.addItem(NSMenuItem.separator())
 
+        let signItem = NSMenuItem(
+            title: "Next Sign",
+            action: #selector(cycleSign(_:)),
+            keyEquivalent: "s"
+        )
+        signItem.target = self
+        menu.addItem(signItem)
+
+        menu.addItem(NSMenuItem.separator())
+
         let hideItem = NSMenuItem(
             title: "Hide Neko",
             action: #selector(toggleHidden),
@@ -133,6 +143,10 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         menu.update()
         Settings.shared.currentSpeed = speed
         onSpeedChange?()
+    }
+
+    @objc private func cycleSign(_ sender: Any?) {
+        Settings.shared.cycleSign()
     }
 
     @objc private func toggleHidden(_ sender: NSMenuItem) {

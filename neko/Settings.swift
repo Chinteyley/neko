@@ -73,6 +73,71 @@ enum NekoSpeed: Double, CaseIterable {
     }
 }
 
+enum NekoSign: Int, CaseIterable {
+    case stillLeftAligned = 0
+    case yelledAt = 1
+    case fortySeven = 2
+
+    var text: String {
+        switch self {
+        case .stillLeftAligned: "still left-aligned"
+        case .yelledAt: "yelled at: 4"
+        case .fortySeven: "$47"
+        }
+    }
+
+    static func fromStoredValue(_ value: Any?) -> NekoSign? {
+        guard let value else { return nil }
+
+        if let number = value as? NSNumber {
+            return NekoSign(rawValue: number.intValue)
+        }
+        if let number = value as? Int {
+            return NekoSign(rawValue: number)
+        }
+        return nil
+    }
+}
+
+enum NekoSignMetrics {
+    static let bubbleWidth: CGFloat = 128
+    static let bubbleHeight: CGFloat = 20
+    static let stickHeight: CGFloat = 4
+
+    static func windowSize(for size: NekoSize) -> CGSize {
+        CGSize(
+            width: max(size.rawValue, bubbleWidth),
+            height: size.rawValue + stickHeight + bubbleHeight
+        )
+    }
+
+    static func spriteRect(for size: NekoSize) -> CGRect {
+        CGRect(x: 0, y: 0, width: size.rawValue, height: size.rawValue)
+    }
+
+    static func signRect(for size: NekoSize) -> CGRect {
+        CGRect(
+            x: 0,
+            y: size.rawValue + stickHeight,
+            width: bubbleWidth,
+            height: bubbleHeight
+        )
+    }
+
+    static func stickRect(for size: NekoSize) -> CGRect {
+        let x = max(0, size.rawValue / 2 - 1)
+        return CGRect(x: x, y: size.rawValue, width: 2, height: stickHeight)
+    }
+
+    static func contains(_ mouse: CGPoint, windowFrame: CGRect, size: NekoSize) -> Bool {
+        guard windowFrame.contains(mouse) else { return false }
+        let local = CGPoint(x: mouse.x - windowFrame.minX, y: mouse.y - windowFrame.minY)
+        return spriteRect(for: size).contains(local)
+            || signRect(for: size).contains(local)
+            || stickRect(for: size).contains(local)
+    }
+}
+
 enum LoginItem {
     static var isSupported: Bool {
         if #available(macOS 13.0, *) {
@@ -121,6 +186,7 @@ final class Settings: ObservableObject {
     private let sizeKey = "nekoSize"
     private let speedKey = "nekoSpeed"
     private let hiddenKey = "nekoHidden"
+    private let signKey = "nekoSign"
     
     @Published var currentSize: NekoSize {
         didSet { UserDefaults.standard.set(currentSize.rawValue, forKey: sizeKey) }
@@ -132,6 +198,19 @@ final class Settings: ObservableObject {
 
     @Published var isHidden: Bool {
         didSet { UserDefaults.standard.set(isHidden, forKey: hiddenKey) }
+    }
+
+    @Published var currentSign: NekoSign {
+        didSet { UserDefaults.standard.set(currentSign.rawValue, forKey: signKey) }
+    }
+
+    func cycleSign() {
+        let all = NekoSign.allCases
+        guard let index = all.firstIndex(of: currentSign) else {
+            currentSign = all[0]
+            return
+        }
+        currentSign = all[(index + 1) % all.count]
     }
 
     private init() {
@@ -150,12 +229,15 @@ final class Settings: ObservableObject {
         }
 
         let initialHidden = UserDefaults.standard.bool(forKey: hiddenKey)
+        let initialSign = NekoSign.fromStoredValue(UserDefaults.standard.object(forKey: signKey)) ?? .stillLeftAligned
 
         self.currentSize = initialSize
         self.currentSpeed = initialSpeed
         self.isHidden = initialHidden
+        self.currentSign = initialSign
 
         UserDefaults.standard.set(initialSize.rawValue, forKey: sizeKey)
         UserDefaults.standard.set(initialSpeed.rawValue, forKey: speedKey)
+        UserDefaults.standard.set(initialSign.rawValue, forKey: signKey)
     }
 }

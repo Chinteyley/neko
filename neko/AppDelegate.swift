@@ -8,13 +8,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var statusBarController: StatusBarController?
     private var store: Store!
     private var cancellables = Set<AnyCancellable>()
+    private var mouseMonitors: [Any] = []
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         
-        let initialSize = Settings.shared.currentSize.rawValue
+        let initialSize = NekoSignMetrics.windowSize(for: Settings.shared.currentSize)
         window = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: initialSize, height: initialSize),
+            contentRect: NSRect(x: 0, y: 0, width: initialSize.width, height: initialSize.height),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false)
@@ -36,9 +37,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let contentView = ContentView(store: store)
         let hostingView = NSHostingView(rootView: contentView)
 
+        window.isOpaque = false
         window.backgroundColor = NSColor.init(calibratedRed: 1, green: 1, blue: 1, alpha: 0)
         window.ignoresMouseEvents = true
         window.contentView = hostingView
+        installMouseMonitors()
+        syncClickThrough()
 
         startAnimationTimer()
         if !Settings.shared.isHidden {
@@ -73,6 +77,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func applicationWillTerminate(_ notification: Notification) {
+        mouseMonitors.forEach { NSEvent.removeMonitor($0) }
+        mouseMonitors.removeAll()
         NotificationCenter.default.removeObserver(
             self,
             name: NSApplication.didChangeScreenParametersNotification,
@@ -108,11 +114,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             window.orderFrontRegardless()
         }
         startAnimationTimer()
+        syncClickThrough()
     }
 
     private func updateWindowSize(_ size: NekoSize) {
-        let newSize = size.rawValue
-        window.setContentSize(NSSize(width: newSize, height: newSize))
+        let newSize = NekoSignMetrics.windowSize(for: size)
+        window.setContentSize(NSSize(width: newSize.width, height: newSize.height))
         let visibleFrames = NSScreen.screens.map(\.visibleFrame)
         guard requiresNekoRecovery(window.frame, in: visibleFrames) else { return }
         bringNekoHere()
@@ -126,8 +133,43 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         animationTimer = makeNekoTimer(interval: Settings.shared.currentSpeed.rawValue) { [weak self] in
             guard let self = self else { return }
             let frames = NSScreen.screens.map(\.visibleFrame)
-            self.window.setFrameOrigin(self.store.nextTick(NSEvent.mouseLocation, visibleFrames: frames))
+            self.window.setFrameOrigin(self.store.nextTick(
+                NSEvent.mouseLocation,
+                visibleFrames: frames,
+                windowSize: self.window.frame.size
+            ))
+            self.syncClickThrough()
         }
+    }
+
+    // The panel stays click-through unless the cursor is on the sprite or sign.
+    // A global mouse monitor is required because ignoresMouseEvents also
+    // suppresses tracking areas and local mouse-moved events.
+    private func installMouseMonitors() {
+        let mask: NSEvent.EventTypeMask = [.mouseMoved, .leftMouseDown]
+        if let monitor = NSEvent.addGlobalMonitorForEvents(matching: mask, handler: { [weak self] _ in
+            self?.syncClickThrough()
+        }) {
+            mouseMonitors.append(monitor)
+        }
+        if let monitor = NSEvent.addLocalMonitorForEvents(matching: mask, handler: { [weak self] event in
+            self?.syncClickThrough()
+            return event
+        }) {
+            mouseMonitors.append(monitor)
+        }
+    }
+
+    private func syncClickThrough() {
+        guard !Settings.shared.isHidden, window.isVisible else {
+            window.ignoresMouseEvents = true
+            return
+        }
+        window.ignoresMouseEvents = !NekoSignMetrics.contains(
+            NSEvent.mouseLocation,
+            windowFrame: window.frame,
+            size: Settings.shared.currentSize
+        )
     }
 }
 

@@ -194,6 +194,24 @@ final class NekoPlacementTests: XCTestCase {
         XCTAssertTrue(screenB.contains(NSRect(origin: result, size: size)))
     }
 
+    func testWideSignFootprintBlocksBeforeSpriteReachesTheEdge() {
+        let visible = NSRect(x: 0, y: 0, width: 200, height: 100)
+        let footprint = NekoSignMetrics.windowSize(for: .small)
+        let origin = NSPoint(x: visible.maxX - footprint.width, y: 40)
+        let mouse = NSPoint(x: 300, y: 40)
+        let store = Store(withMouseLoc: mouse, andNekoLoc: origin)
+
+        let next = store.nextTick(
+            mouse,
+            visibleFrames: [visible],
+            windowSize: NSSize(width: footprint.width, height: footprint.height)
+        )
+
+        XCTAssertEqual(next, origin)
+        XCTAssertGreaterThan(footprint.width, Settings.shared.currentSize.rawValue)
+        assertScratching(store)
+    }
+
     func testGapBetweenFramesBlocksAndScratches() {
         let screenA = NSRect(x: 0, y: 0, width: 200, height: 100)
         let screenB = NSRect(x: 250, y: 0, width: 200, height: 100)

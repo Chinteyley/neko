@@ -24,6 +24,7 @@ Click the menu bar icon.
 
 - **Size.** Small, Medium, Large.
 - **Speed.** Slow, Normal, Fast.
+- **Next Sign.** Cycles the line on the kitten's sign. You can also click the kitten or the sign. `Cmd+S` when Neko is frontmost.
 - **Hide Neko.** Parks the kitten and stops the timer. The app stays running.
 - **Launch at Login.** macOS 13 and later.
 - **Quit Neko.** `Cmd+Q`.

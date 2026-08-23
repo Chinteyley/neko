@@ -49,7 +49,7 @@ final class Store: ObservableObject {
         anim = [.idle]
     }
 
-    func nextTick(_ newMouseLoc: NSPoint, visibleFrames: [NSRect] = []) -> NSPoint {
+    func nextTick(_ newMouseLoc: NSPoint, visibleFrames: [NSRect] = [], windowSize: NSSize? = nil) -> NSPoint {
         tick += 1
 
         let still = !mouseMoved(from: mouseLoc, to: newMouseLoc)
@@ -99,10 +99,11 @@ final class Store: ObservableObject {
         }
 
         let unconstrained = moveToward(newMouseLoc)
+        let footprint = windowSize ?? NSSize(width: step, height: step)
         let constrained = constrainNekoOrigin(
             proposed: unconstrained,
             current: nekoLoc,
-            size: NSSize(width: step, height: step),
+            size: footprint,
             mouse: newMouseLoc,
             visibleFrames: visibleFrames
         )
