@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 import XCTest
 @testable import neko
 
@@ -41,6 +42,179 @@ final class NekoCustomizationTests: XCTestCase {
         }
 
         XCTAssertGreaterThan(ticks, 0)
+    }
+
+    func testTimerRestartedDuringEventTrackingKeepsFiringInDefaultMode() {
+        var ticks = 0
+        var timer = makeNekoTimer(interval: 0.01) { ticks += 1 }
+        timer.invalidate()
+        ticks = 0
+
+        let trackingDeadline = Date().addingTimeInterval(0.2)
+        var created = false
+        while Date() < trackingDeadline {
+            if !created {
+                timer = makeNekoTimer(interval: 0.01) { ticks += 1 }
+                created = true
+            }
+            _ = RunLoop.current.run(mode: .eventTracking, before: Date().addingTimeInterval(0.02))
+        }
+        XCTAssertGreaterThan(ticks, 0)
+
+        let ticksAfterMenu = ticks
+        let defaultDeadline = Date().addingTimeInterval(0.2)
+        while Date() < defaultDeadline {
+            _ = RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.02))
+        }
+        XCTAssertGreaterThan(ticks, ticksAfterMenu)
+        timer.invalidate()
+    }
+
+    func testPanelFrameSurvivesOrderOutAndKeepsMoving() {
+        let panel = NSPanel(
+            contentRect: NSRect(x: 240, y: 240, width: 32, height: 32),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        panel.isFloatingPanel = true
+        panel.isReleasedWhenClosed = false
+        panel.hidesOnDeactivate = false
+        panel.level = .statusBar
+        panel.orderFrontRegardless()
+
+        let sizeBefore = panel.frame.size
+        panel.orderOut(nil)
+        let sizeWhileHidden = panel.frame.size
+        panel.orderFrontRegardless()
+
+        XCTAssertGreaterThan(sizeBefore.width, 0)
+        XCTAssertEqual(sizeWhileHidden.width, sizeBefore.width, accuracy: 0.5)
+        XCTAssertEqual(panel.frame.size.width, sizeBefore.width, accuracy: 0.5)
+
+        let startX = panel.frame.origin.x
+        var origin = panel.frame.origin
+        var timer = makeNekoTimer(interval: 0.01) { }
+        timer.invalidate()
+        timer = makeNekoTimer(interval: 0.01) {
+            origin.x += 4
+            panel.setFrameOrigin(origin)
+        }
+        defer { timer.invalidate() }
+
+        let deadline = Date().addingTimeInterval(0.25)
+        while Date() < deadline {
+            _ = RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.02))
+        }
+        XCTAssertGreaterThan(panel.frame.origin.x, startX)
+        panel.orderOut(nil)
+    }
+
+    func testHideByAlphaKeepsWalkingAfterUnhide() {
+        Settings.shared.currentSize = .small
+        let target = NSPoint(x: 400, y: 0)
+        let store = Store(withMouseLoc: target, andNekoLoc: .zero)
+        let panel = NSPanel(
+            contentRect: NSRect(x: 300, y: 300, width: 16, height: 16),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        panel.isReleasedWhenClosed = false
+        panel.setFrameOrigin(.zero)
+        panel.alphaValue = 1
+        panel.orderFrontRegardless()
+
+        var timer: Timer?
+        func startTimer() {
+            timer?.invalidate()
+            timer = makeNekoTimer(interval: 0.01) {
+                panel.setFrameOrigin(store.nextTick(target))
+            }
+        }
+        startTimer()
+
+        let warmup = Date().addingTimeInterval(0.12)
+        while Date() < warmup {
+            _ = RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.02))
+        }
+        XCTAssertGreaterThan(store.tick, 0)
+
+        timer?.invalidate()
+        timer = nil
+        panel.alphaValue = 0
+        let originAtHide = store.nekoLoc
+
+        panel.alphaValue = 1
+        panel.level = .statusBar
+        panel.orderFrontRegardless()
+        startTimer()
+
+        let resume = Date().addingTimeInterval(0.2)
+        while Date() < resume {
+            _ = RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.02))
+        }
+        XCTAssertGreaterThan(store.nekoLoc.x, originAtHide.x)
+        timer?.invalidate()
+        panel.orderOut(nil)
+    }
+
+    func testHostingOverlayMovesOnScreenAfterHideUnhide() {
+        Settings.shared.currentSize = .small
+        let target = NSPoint(x: 1200, y: 200)
+        let start = NSPoint(x: 200, y: 200)
+        let store = Store(withMouseLoc: target, andNekoLoc: start)
+        let size = NSSize(width: 16, height: 16)
+        let panel = NSPanel(
+            contentRect: NSRect(origin: start, size: size),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        panel.isFloatingPanel = true
+        panel.isReleasedWhenClosed = false
+        panel.hidesOnDeactivate = false
+        panel.level = .statusBar
+        panel.backgroundColor = NSColor(calibratedRed: 1, green: 1, blue: 1, alpha: 0)
+        panel.ignoresMouseEvents = true
+        let hosting = NSHostingView(rootView: ContentView(store: store))
+        disableHostingSizeControl(hosting)
+        panel.contentView = hosting
+        panel.setFrame(NSRect(origin: start, size: size), display: true)
+        panel.orderFrontRegardless()
+
+        var timer: Timer?
+        func startTimer() {
+            timer?.invalidate()
+            timer = makeNekoTimer(interval: 0.01) {
+                placeNeko(panel, at: store.nextTick(target), size: size)
+            }
+        }
+        startTimer()
+
+        let warmup = Date().addingTimeInterval(0.15)
+        while Date() < warmup {
+            _ = RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.02))
+        }
+        XCTAssertGreaterThan(panel.frame.origin.x, start.x)
+
+        timer?.invalidate()
+        timer = nil
+        panel.alphaValue = 0
+        let originAtHide = panel.frame.origin
+
+        panel.alphaValue = 1
+        panel.level = .statusBar
+        panel.orderFrontRegardless()
+        startTimer()
+
+        let resume = Date().addingTimeInterval(0.25)
+        while Date() < resume {
+            _ = RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.02))
+        }
+        XCTAssertGreaterThan(panel.frame.origin.x, originAtHide.x)
+        timer?.invalidate()
+        panel.orderOut(nil)
     }
 
     func testSizePresets() {
@@ -162,11 +336,27 @@ final class NekoCustomizationTests: XCTestCase {
         assertThinking(store)
     }
 
+    func testStatusItemUsesFilledIconWhenVisibleAndOutlineWhenHidden() {
+        Settings.shared.isHidden = false
+        let controller = StatusBarController()
+        let button = statusItem(from: controller)?.button
+        let visible = button?.image
+        XCTAssertNotNil(visible)
+        XCTAssertTrue(visible?.isTemplate ?? false)
+
+        Settings.shared.isHidden = true
+        let hidden = button?.image
+        XCTAssertNotNil(hidden)
+        XCTAssertTrue(hidden?.isTemplate ?? false)
+        XCTAssertGreaterThan(opaquePixelCount(visible), opaquePixelCount(hidden))
+
+        Settings.shared.isHidden = false
+        XCTAssertEqual(opaquePixelCount(button?.image), opaquePixelCount(visible))
+    }
+
     func testStatusMenuUsesPlainSizeNamesAndOmitsDistanceAndRecovery() {
         let controller = StatusBarController()
-        let menu = Mirror(reflecting: controller).children
-            .compactMap { $0.label == "statusItem" ? $0.value as? NSStatusItem : nil }
-            .first?.menu
+        let menu = statusItem(from: controller)?.menu
 
         var expected = [
             "Size",
@@ -187,6 +377,27 @@ final class NekoCustomizationTests: XCTestCase {
         expected.append(contentsOf: ["", "Quit Neko"])
 
         XCTAssertEqual(menu?.items.map(\.title), expected)
+    }
+
+    private func statusItem(from controller: StatusBarController) -> NSStatusItem? {
+        Mirror(reflecting: controller).children
+            .compactMap { $0.label == "statusItem" ? $0.value as? NSStatusItem : nil }
+            .first
+    }
+
+    private func opaquePixelCount(_ image: NSImage?) -> Int {
+        guard let image,
+              let tiff = image.tiffRepresentation,
+              let rep = NSBitmapImageRep(data: tiff) else { return 0 }
+        var count = 0
+        for y in 0..<rep.pixelsHigh {
+            for x in 0..<rep.pixelsWide {
+                if let color = rep.colorAt(x: x, y: y), color.alphaComponent > 0.5 {
+                    count += 1
+                }
+            }
+        }
+        return count
     }
 
     private func point(_ x: CGFloat) -> NSPoint {

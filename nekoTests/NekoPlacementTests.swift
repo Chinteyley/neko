@@ -78,6 +78,46 @@ final class NekoPlacementTests: XCTestCase {
         XCTAssertFalse(requiresNekoRecovery(centeredLargeFrame, in: visibleFrames))
     }
 
+    func testUnhideKeepsParkedOriginWhenFrameIsStillOnScreen() {
+        let parked = NSPoint(x: 80, y: 90)
+        let origin = originAfterUnhide(
+            parkedOrigin: parked,
+            parkedSize: NSSize(width: 16, height: 16),
+            mouseLocation: NSPoint(x: 500, y: 400),
+            visibleFrames: [NSRect(x: 0, y: 0, width: 1000, height: 800)]
+        )
+        XCTAssertEqual(origin, parked)
+    }
+
+    func testUnhideRecentersWhenParkedDisplayIsGone() {
+        let remaining = NSRect(x: 1920, y: 0, width: 1920, height: 1080)
+        let mouse = NSPoint(x: 2500, y: 400)
+        let origin = originAfterUnhide(
+            parkedOrigin: NSPoint(x: 80, y: 90),
+            parkedSize: NSSize(width: 16, height: 16),
+            mouseLocation: mouse,
+            visibleFrames: [remaining]
+        )
+        XCTAssertEqual(
+            origin,
+            clampedNekoOrigin(
+                mouseLocation: mouse,
+                windowSize: NSSize(width: 16, height: 16),
+                visibleFrame: remaining
+            )
+        )
+    }
+
+    func testUnhideWithoutRelocateResumesWalking() {
+        let far = NSPoint(x: 80, y: 0)
+        let store = Store(withMouseLoc: far, andNekoLoc: .zero)
+        let mid = store.nextTick(far)
+        XCTAssertNotEqual(mid, .zero)
+
+        let resumed = store.nextTick(far)
+        XCTAssertNotEqual(resumed, mid)
+    }
+
     func testRelocateClearsThinkingAndStartsPursuitFromNewLocation() {
         let arrival = NSPoint(x: 32, y: 0)
         let store = Store(withMouseLoc: arrival, andNekoLoc: NSPoint(x: 0, y: 0))

@@ -33,15 +33,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.center()
 
         store = Store(withMouseLoc: NSEvent.mouseLocation, andNekoLoc: window.frame.origin)
-        let contentView = ContentView(store: store)
-        let hostingView = NSHostingView(rootView: contentView)
 
         window.backgroundColor = NSColor.init(calibratedRed: 1, green: 1, blue: 1, alpha: 0)
         window.ignoresMouseEvents = true
-        window.contentView = hostingView
+        installContentView()
+        placeNeko(window, at: window.frame.origin, size: NSSize(width: initialSize, height: initialSize))
 
         startAnimationTimer()
-        if !Settings.shared.isHidden {
+        if Settings.shared.isHidden {
+            window.alphaValue = 0
+        } else {
             window.orderFrontRegardless()
         }
         
@@ -97,44 +98,91 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             visibleFrame: screen.visibleFrame
         )
         store.relocate(to: origin, mouseLocation: mouseLocation)
-        window.setFrameOrigin(origin)
+        placeNeko(window, at: origin, size: window.frame.size)
     }
 
     private func applyHidden(_ hidden: Bool) {
         if hidden {
-            window.orderOut(nil)
+            window.alphaValue = 0
         } else {
-            bringNekoHere()
+            let size = NSSize(
+                width: Settings.shared.currentSize.rawValue,
+                height: Settings.shared.currentSize.rawValue
+            )
+            let parkedOrigin = window.frame.origin
+            if hypot(store.nekoLoc.x - parkedOrigin.x, store.nekoLoc.y - parkedOrigin.y) > 0.5 {
+                store.relocate(to: parkedOrigin, mouseLocation: NSEvent.mouseLocation)
+            }
+            let origin = originAfterUnhide(
+                parkedOrigin: parkedOrigin,
+                parkedSize: size,
+                mouseLocation: NSEvent.mouseLocation,
+                visibleFrames: NSScreen.screens.map(\.visibleFrame)
+            )
+            if origin != store.nekoLoc {
+                store.relocate(to: origin, mouseLocation: NSEvent.mouseLocation)
+            }
+            placeNeko(window, at: origin, size: size)
+            window.alphaValue = 1
+            window.level = .statusBar
             window.orderFrontRegardless()
         }
-        startAnimationTimer()
+        startAnimationTimer(isHidden: hidden)
+    }
+
+    private func installContentView() {
+        let hosting = NSHostingView(rootView: ContentView(store: store))
+        disableHostingSizeControl(hosting)
+        window.contentView = hosting
     }
 
     private func updateWindowSize(_ size: NekoSize) {
-        let newSize = size.rawValue
-        window.setContentSize(NSSize(width: newSize, height: newSize))
+        placeNeko(
+            window,
+            at: window.frame.origin,
+            size: NSSize(width: size.rawValue, height: size.rawValue)
+        )
         let visibleFrames = NSScreen.screens.map(\.visibleFrame)
         guard requiresNekoRecovery(window.frame, in: visibleFrames) else { return }
         bringNekoHere()
     }
 
-    private func startAnimationTimer() {
+    private func startAnimationTimer(isHidden: Bool = Settings.shared.isHidden) {
         animationTimer?.invalidate()
         animationTimer = nil
-        guard !Settings.shared.isHidden else { return }
+        guard !isHidden else { return }
 
         animationTimer = makeNekoTimer(interval: Settings.shared.currentSpeed.rawValue) { [weak self] in
             guard let self = self else { return }
+            let mouseLocation = NSEvent.mouseLocation
             let frames = NSScreen.screens.map(\.visibleFrame)
-            self.window.setFrameOrigin(self.store.nextTick(NSEvent.mouseLocation, visibleFrames: frames))
+            let nextOrigin = self.store.nextTick(mouseLocation, visibleFrames: frames)
+            placeNeko(
+                self.window,
+                at: nextOrigin,
+                size: self.window.frame.size
+            )
         }
     }
 }
 
 // Menu tracking runs the main loop in .eventTracking, which a default-mode timer
 // never reaches; the neko would freeze for as long as the menu stayed open.
+func disableHostingSizeControl<Content: View>(_ hosting: NSHostingView<Content>) {
+    if #available(macOS 13.0, *) {
+        hosting.sizingOptions = []
+    }
+}
+
+func placeNeko(_ window: NSWindow, at origin: NSPoint, size: NSSize) {
+    let width = size.width > 0 ? size.width : Settings.shared.currentSize.rawValue
+    let height = size.height > 0 ? size.height : Settings.shared.currentSize.rawValue
+    window.setFrame(NSRect(origin: origin, size: NSSize(width: width, height: height)), display: true)
+}
+
 func makeNekoTimer(interval: TimeInterval, tick: @escaping () -> Void) -> Timer {
     let timer = Timer(timeInterval: interval, repeats: true) { _ in tick() }
+    RunLoop.main.add(timer, forMode: .default)
     RunLoop.main.add(timer, forMode: .common)
     RunLoop.main.add(timer, forMode: .eventTracking)
     return timer
@@ -180,6 +228,28 @@ func constrainNekoOrigin(
         return proposed
     }
     return clampOrigin(proposed, size: size, to: nearest)
+}
+
+func originAfterUnhide(
+    parkedOrigin: NSPoint,
+    parkedSize: NSSize,
+    mouseLocation: NSPoint,
+    visibleFrames: [NSRect]
+) -> NSPoint {
+    let parked = NSRect(origin: parkedOrigin, size: parkedSize)
+    if !requiresNekoRecovery(parked, in: visibleFrames) {
+        return parkedOrigin
+    }
+
+    guard let visibleFrame = visibleFrames.first(where: { $0.contains(mouseLocation) })
+            ?? visibleFrames.first else {
+        return parkedOrigin
+    }
+    return clampedNekoOrigin(
+        mouseLocation: mouseLocation,
+        windowSize: parkedSize,
+        visibleFrame: visibleFrame
+    )
 }
 
 func clampedNekoOrigin(mouseLocation: NSPoint, windowSize: NSSize, visibleFrame: NSRect) -> NSPoint {

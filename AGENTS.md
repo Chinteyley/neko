@@ -12,12 +12,13 @@ Humans read `README.md`. This file is the map for code changes.
 | Walk, idle, think, scratch | `Store.swift` (`nextTick`, `nextDirection`) |
 | Menu bar items | `StatusBarController.swift` |
 | Size or speed presets | `Settings.swift` (`NekoSize`, `NekoSpeed`) |
-| Overlay window, timer, hide | `AppDelegate.swift` |
+| Overlay window, timer, hide | `AppDelegate.swift` (`placeNeko`, `disableHostingSizeControl`) |
 | Screen-edge clamp | `constrainNekoOrigin` in `AppDelegate.swift` |
+| Unhide origin | `originAfterUnhide` in `AppDelegate.swift` |
 | Launch at login | `LoginItem` in `Settings.swift` |
 | Hide / show | `AppDelegate.applyHidden`, `Settings.isHidden` |
 | Sprite sheet | `neko/Assets.xcassets/Neko.imageset/` |
-| Menu bar icon | `neko/Assets.xcassets/MenuBarIcon.imageset/` |
+| Menu bar icon | `neko/Assets.xcassets/MenuBarIcon.imageset/` (hidden) + `MenuBarIconFilled.imageset/` (visible) |
 | Drag-to-Applications image | `scripts/package-dmg.sh`, `.github/workflows/release.yml` |
 | Tests | `nekoTests/` |
 
@@ -63,7 +64,7 @@ README uses the WebP so it autoplays. Recut from the MP4. A GIF of this wallpape
 
 `constrainNekoOrigin` keeps the whole sprite inside a visible frame. Empty `visibleFrames` leaves the proposed origin alone.
 
-Unhiding and display-change recovery call `bringNekoHere()`, which recenters on the mouse's screen. Do not show the kitten on a display that is gone.
+Unhiding keeps the parked origin when that frame is still on a visible display, so the kitten resumes walking. Display-change recovery and an off-screen unhide call `bringNekoHere()` / `originAfterUnhide`, which recenters on the mouse's screen. Do not show the kitten on a display that is gone.
 
 ## Overlay
 
@@ -73,7 +74,9 @@ Window setup order matters:
 2. `isFloatingPanel = true`, then `level = .statusBar`. Setting the floating-panel flag later resets the level to `.floating`.
 3. Collection behavior: `canJoinAllSpaces`, `fullScreenAuxiliary`, `stationary`, and `canJoinAllApplications` on macOS 13+
 4. `backgroundColor` with alpha 0, then `ignoresMouseEvents = true`
-5. Host `ContentView` and start the timer
+5. Host `ContentView` and start the timer. Set `NSHostingView.sizingOptions` to `[]` so SwiftUI cannot pin the panel origin. Move with `placeNeko` (`setFrame(display: true)`), not `setFrameOrigin` alone.
+
+Hide sets `alphaValue` to 0 and stops the timer. Do not `orderOut` — that freezes the overlay on the last frame and origin. Unhide restores alpha, level, and the timer.
 
 `makeNekoTimer` registers in `.common` and `.eventTracking`. `.common` alone does not run during menu tracking. `testAnimationTimerRunsWhileAMenuTracksEvents` fails if you drop `.eventTracking`.
 
@@ -97,11 +100,11 @@ Menu titles are plain names. `testStatusMenuUsesPlainSizeNamesAndOmitsDistanceAn
 
 `Neko.imageset` is a 192×192 sheet. Frames are 16×16, picked with a negative offset and `.interpolation(.none)`. Add a state by extending `NekoState` and the `offset` switch together.
 
-`MenuBarIcon` is a template imageset drawn at 16pt. Keep it on the sprite's pixel grid so it does not land on a fractional scale.
+`MenuBarIcon` is the outline template (hidden). `MenuBarIconFilled` is that same head, filled, with eyes and inner features punched out. Both are drawn at 16pt on the sprite's pixel grid so they do not land on a fractional scale.
 
 ## Conventions
 
-- Pass size and similar settings as values. Do not add a new `@Binding` for animation state.
+- Pass size and similar settings as values. Do not add a new `@Binding` for animation state. `Neko` takes `state` as a value; a binding into `anim[tick]` sticks on one frame.
 - Timer closures capture `[weak self]`.
 - Code has no comments unless the next reader would miss a non-obvious rule. The overlay order and the timer modes above are those rules.
 - App category is `public.app-category.utilities` so Game Mode stays off.
