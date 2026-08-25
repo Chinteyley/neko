@@ -30,7 +30,7 @@ enum NekoState {
 }
 
 struct Neko: View {
-    @Binding var state: NekoState
+    var state: NekoState
     var size: NekoSize
 
     private var scale: CGFloat { size.scale }
@@ -124,6 +124,6 @@ struct Neko: View {
 
 struct Neko_Previews: PreviewProvider {
     static var previews: some View {
-        Neko(state: Binding.constant(.movingSouth2), size: .small)
+        Neko(state: .movingSouth2, size: .small)
     }
 }

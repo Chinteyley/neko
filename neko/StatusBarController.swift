@@ -1,27 +1,41 @@
 import Cocoa
+import Combine
 
 final class StatusBarController: NSObject, NSMenuDelegate {
     private var statusItem: NSStatusItem
     private var hideItem: NSMenuItem?
     private var loginItem: NSMenuItem?
+    private var cancellables = Set<AnyCancellable>()
     var onSpeedChange: (() -> Void)?
     
     override init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         super.init()
-        
+
         if let button = statusItem.button {
-            button.image = Self.menuBarIcon()
             button.imagePosition = .imageOnly
             button.title = ""
         }
+        applyHiddenIcon(Settings.shared.isHidden)
         
         setupMenu()
+
+        Settings.shared.$isHidden
+            .dropFirst()
+            .sink { [weak self] hidden in
+                self?.applyHiddenIcon(hidden)
+            }
+            .store(in: &cancellables)
+    }
+
+    private func applyHiddenIcon(_ hidden: Bool) {
+        statusItem.button?.image = Self.menuBarIcon(hidden: hidden)
     }
 
     // Sized to the sprite's own pixel grid so the art never lands on a fractional scale.
-    private static func menuBarIcon() -> NSImage? {
-        guard let asset = NSImage(named: "MenuBarIcon"),
+    private static func menuBarIcon(hidden: Bool) -> NSImage? {
+        let name = hidden ? "MenuBarIcon" : "MenuBarIconFilled"
+        guard let asset = NSImage(named: name),
               let icon = asset.copy() as? NSImage else { return nil }
         icon.size = NSSize(width: 16, height: 16)
         icon.isTemplate = true

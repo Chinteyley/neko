@@ -6,8 +6,8 @@ struct ContentView: View {
 
     var body: some View {
         NekoAnimation(
-            animation: $store.anim,
-            tick: $store.tick,
+            animation: store.anim,
+            tick: store.tick,
             size: settings.currentSize
         )
     }
